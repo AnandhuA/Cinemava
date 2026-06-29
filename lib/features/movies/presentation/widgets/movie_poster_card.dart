@@ -141,7 +141,12 @@ class _PosterImage extends StatelessWidget {
         aspectRatio: 2 / 3,
         child: ClipRRect(
           borderRadius: BorderRadius.circular(8),
-          child: Image.network(movie.posterUrl, fit: BoxFit.cover),
+          child: movie.posterUrl.isEmpty
+              ? const ColoredBox(
+                  color: Color(0xFF252936),
+                  child: Center(child: Icon(Icons.movie_outlined)),
+                )
+              : Image.network(movie.posterUrl, fit: BoxFit.cover),
         ),
       ),
     );

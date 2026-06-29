@@ -5,6 +5,7 @@ class Movie {
     required this.year,
     required this.runtime,
     required this.genres,
+    required this.language,
     required this.rating,
     required this.overview,
     required this.posterUrl,
@@ -17,6 +18,7 @@ class Movie {
   final int year;
   final String runtime;
   final List<String> genres;
+  final String language;
   final double rating;
   final String overview;
   final String posterUrl;

@@ -25,7 +25,23 @@ class DiscoverPage extends StatelessWidget {
               ),
             ),
           ),
-          Expanded(child: MovieGrid(movies: provider.searchResults)),
+          if (provider.isSearching)
+            const LinearProgressIndicator(minHeight: 2)
+          else
+            const SizedBox(height: 2),
+          Expanded(
+            child: provider.errorMessage != null && provider.movies.isEmpty
+                ? Center(
+                    child: Padding(
+                      padding: const EdgeInsets.all(24),
+                      child: Text(
+                        provider.errorMessage!,
+                        textAlign: TextAlign.center,
+                      ),
+                    ),
+                  )
+                : MovieGrid(movies: provider.searchResults),
+          ),
         ],
       ),
     );

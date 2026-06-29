@@ -2,6 +2,9 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
+import 'package:provider/provider.dart';
+
+import '../../../onboarding/presentation/providers/user_preference_provider.dart';
 
 class SplashPage extends StatefulWidget {
   const SplashPage({super.key});
@@ -17,7 +20,9 @@ class _SplashPageState extends State<SplashPage> {
   void initState() {
     super.initState();
     _redirectTimer = Timer(const Duration(milliseconds: 900), () {
-      if (mounted) context.go('/onboarding');
+      if (!mounted) return;
+      final preferences = context.read<UserPreferenceProvider>();
+      context.go(preferences.isOnboardingComplete ? '/' : '/onboarding');
     });
   }
 
