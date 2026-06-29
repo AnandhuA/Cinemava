@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:dio/dio.dart';
 
 import '../../../../core/constants/api_constants.dart';
@@ -38,6 +39,11 @@ class TmdbMovieRepository {
         recommendations: recommendations.take(12).toList(),
       );
     } on DioException catch (error) {
+      _logDioError(
+        path: '/movie/${movie.id}',
+        authMode: 'details',
+        error: error,
+      );
       throw TmdbNetworkException(_friendlyDioMessage(error));
     }
   }
@@ -66,6 +72,7 @@ class TmdbMovieRepository {
           .map((movie) => movie.toEntity())
           .toList();
     } on DioException catch (error) {
+      _logDioError(path: path, authMode: 'movies', error: error);
       throw TmdbNetworkException(_friendlyDioMessage(error));
     }
   }
@@ -76,45 +83,61 @@ class TmdbMovieRepository {
   }) async {
     if (ApiConstants.tmdbApiKey.isNotEmpty) {
       try {
-        return _getMapWithApiKey(path, extraParams: extraParams);
+        return await _getMapWithApiKey(path, extraParams: extraParams);
       } on DioException catch (error) {
+        _logDioError(path: path, authMode: 'api_key', error: error);
         if (ApiConstants.tmdbReadAccessToken.isEmpty) rethrow;
         final statusCode = error.response?.statusCode;
         if (statusCode != 401 && statusCode != 403) rethrow;
+        _log('Falling back to read access token for $path');
       }
     }
 
-    return _getMapWithReadAccessToken(path, extraParams: extraParams);
+    return await _getMapWithReadAccessToken(path, extraParams: extraParams);
   }
 
   Future<Response<Map<String, dynamic>>> _getMapWithApiKey(
     String path, {
     Map<String, dynamic> extraParams = const {},
-  }) {
-    return _dio.get<Map<String, dynamic>>(
+  }) async {
+    final queryParameters = {
+      'api_key': ApiConstants.tmdbApiKey,
+      'language': 'en-US',
+      'page': 1,
+      ...extraParams,
+    };
+    _logRequest(path: path, authMode: 'api_key', params: queryParameters);
+
+    final response = await _dio.get<Map<String, dynamic>>(
       '${ApiConstants.tmdbBaseUrl}$path',
-      queryParameters: {
-        'api_key': ApiConstants.tmdbApiKey,
-        'language': 'en-US',
-        'page': 1,
-        ...extraParams,
-      },
+      queryParameters: queryParameters,
     );
+    _logResponse(path: path, authMode: 'api_key', response: response);
+    return response;
   }
 
   Future<Response<Map<String, dynamic>>> _getMapWithReadAccessToken(
     String path, {
     Map<String, dynamic> extraParams = const {},
-  }) {
-    return _dio.get<Map<String, dynamic>>(
+  }) async {
+    final queryParameters = {'language': 'en-US', 'page': 1, ...extraParams};
+    _logRequest(
+      path: path,
+      authMode: 'read_access_token',
+      params: queryParameters,
+    );
+
+    final response = await _dio.get<Map<String, dynamic>>(
       '${ApiConstants.tmdbBaseUrl}$path',
-      queryParameters: {'language': 'en-US', 'page': 1, ...extraParams},
+      queryParameters: queryParameters,
       options: Options(
         headers: {
           'Authorization': 'Bearer ${ApiConstants.tmdbReadAccessToken}',
         },
       ),
     );
+    _logResponse(path: path, authMode: 'read_access_token', response: response);
+    return response;
   }
 
   List<CastMember> _castFromCredits(Response<Map<String, dynamic>> response) {
@@ -191,7 +214,54 @@ class TmdbMovieRepository {
     if (statusCode != null) {
       return 'TMDb request failed with status $statusCode.';
     }
-    return 'Could not connect to api.themoviedb.org. Open that site in the same device browser, try Wi-Fi/VPN/private DNS off, then retry.';
+
+    final detail = error.error == null ? error.message : error.error.toString();
+    return 'Could not connect to api.themoviedb.org. Reason: $detail';
+  }
+
+  void _logRequest({
+    required String path,
+    required String authMode,
+    required Map<String, dynamic> params,
+  }) {
+    final safeParams = Map<String, dynamic>.from(params);
+    if (safeParams.containsKey('api_key')) {
+      safeParams['api_key'] = _maskSecret(safeParams['api_key'].toString());
+    }
+    _log(
+      'REQUEST $authMode ${ApiConstants.tmdbBaseUrl}$path params=$safeParams',
+    );
+  }
+
+  void _logResponse({
+    required String path,
+    required String authMode,
+    required Response<Map<String, dynamic>> response,
+  }) {
+    final results = response.data?['results'];
+    final resultCount = results is List ? results.length : null;
+    _log(
+      'RESPONSE $authMode $path status=${response.statusCode} results=$resultCount',
+    );
+  }
+
+  void _logDioError({
+    required String path,
+    required String authMode,
+    required DioException error,
+  }) {
+    _log(
+      'ERROR $authMode $path type=${error.type} status=${error.response?.statusCode} message=${error.message} error=${error.error}',
+    );
+  }
+
+  String _maskSecret(String value) {
+    if (value.length <= 8) return '***';
+    return '${value.substring(0, 4)}...${value.substring(value.length - 4)}';
+  }
+
+  void _log(String message) {
+    debugPrint('[TMDB] $message');
   }
 }
 

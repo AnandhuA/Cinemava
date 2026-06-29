@@ -54,10 +54,7 @@ class CinemavaApp extends StatelessWidget {
         connectTimeout: const Duration(seconds: 20),
         receiveTimeout: const Duration(seconds: 20),
         sendTimeout: const Duration(seconds: 20),
-        headers: const {
-          'accept': 'application/json',
-          'User-Agent': 'Cinemava/1.0 Flutter',
-        },
+        headers: const {'accept': 'application/json'},
       ),
     );
   }
