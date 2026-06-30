@@ -59,12 +59,22 @@ class TmdbMovieDto {
           ? ''
           : '${ApiConstants.tmdbBackdropBaseUrl}$backdropPath',
       cast: const [],
+      isReleased: _isReleased,
     );
   }
 
   int get _releaseYear {
     if (releaseDate.length < 4) return DateTime.now().year;
     return int.tryParse(releaseDate.substring(0, 4)) ?? DateTime.now().year;
+  }
+
+  bool get _isReleased {
+    if (releaseDate.isEmpty) return true;
+    final parsed = DateTime.tryParse(releaseDate);
+    if (parsed == null) return _releaseYear <= DateTime.now().year;
+    final today = DateTime.now();
+    final todayDate = DateTime(today.year, today.month, today.day);
+    return !parsed.isAfter(todayDate);
   }
 }
 

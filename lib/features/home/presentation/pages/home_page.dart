@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
 import '../../../../core/responsive/responsive.dart';
+import '../../../../core/widgets/cached_app_image.dart';
 import '../../../../core/widgets/section_header.dart';
 import '../../../movies/domain/entities/movie.dart';
 import '../../../movies/presentation/providers/movie_library_provider.dart';
@@ -186,21 +187,11 @@ class _TrendingPosterFeature extends StatelessWidget {
                     tag: 'movie-poster-${movie.id}',
                     child: ClipRRect(
                       borderRadius: BorderRadius.circular(8),
-                      child: movie.posterUrl.isEmpty
-                          ? const SizedBox(
-                              width: 124,
-                              height: 186,
-                              child: ColoredBox(
-                                color: Color(0xFF252936),
-                                child: Icon(Icons.movie_outlined),
-                              ),
-                            )
-                          : Image.network(
-                              movie.posterUrl,
-                              width: 124,
-                              height: 186,
-                              fit: BoxFit.cover,
-                            ),
+                      child: CachedAppImage(
+                        imageUrl: movie.posterUrl,
+                        width: 124,
+                        height: 186,
+                      ),
                     ),
                   ),
                   const SizedBox(width: 16),

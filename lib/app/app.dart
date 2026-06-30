@@ -19,7 +19,13 @@ class CinemavaApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MultiProvider(
       providers: [
-        ChangeNotifierProvider(create: (_) => ThemeProvider()),
+        ChangeNotifierProvider(
+          create: (_) => ThemeProvider(
+            Hive.isBoxOpen('user_preferences')
+                ? Hive.box('user_preferences')
+                : null,
+          ),
+        ),
         ChangeNotifierProvider(
           create: (_) => UserPreferenceProvider(
             Hive.isBoxOpen('user_preferences')
@@ -36,7 +42,11 @@ class CinemavaApp extends StatelessWidget {
           )..loadInitialMovies(),
         ),
         ChangeNotifierProvider(create: (_) => JournalProvider()),
-        ChangeNotifierProvider(create: (_) => SpinWheelProvider()),
+        ChangeNotifierProvider(
+          create: (_) => SpinWheelProvider(
+            Hive.isBoxOpen('spin_wheel') ? Hive.box('spin_wheel') : null,
+          ),
+        ),
       ],
       child: Consumer<ThemeProvider>(
         builder: (context, themeProvider, _) {

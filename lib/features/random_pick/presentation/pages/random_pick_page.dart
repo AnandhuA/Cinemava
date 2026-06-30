@@ -6,6 +6,7 @@ import 'package:flutter/services.dart';
 import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
+import '../../../../core/widgets/cached_app_image.dart';
 import '../../../movies/domain/entities/movie.dart';
 import '../../../movies/presentation/providers/movie_library_provider.dart';
 import '../providers/spin_wheel_provider.dart';
@@ -258,7 +259,7 @@ class _RandomPickPageState extends State<RandomPickPage>
     SpinWheelProvider wheel,
   ) {
     final available = library.availableMovies
-        .where((movie) => !wheel.contains(movie.id))
+        .where((movie) => movie.isReleased && !wheel.contains(movie.id))
         .toList();
 
     showModalBottomSheet<void>(
@@ -281,11 +282,10 @@ class _RandomPickPageState extends State<RandomPickPage>
                         ? const Icon(Icons.movie_outlined)
                         : ClipRRect(
                             borderRadius: BorderRadius.circular(4),
-                            child: Image.network(
-                              movie.posterUrl,
+                            child: CachedAppImage(
+                              imageUrl: movie.posterUrl,
                               width: 42,
                               height: 58,
-                              fit: BoxFit.cover,
                             ),
                           ),
                     title: Text(movie.title),
@@ -355,17 +355,10 @@ class _PosterSegmentImage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    if (movie.posterUrl.isEmpty) {
-      return const ColoredBox(
-        color: Color(0xFF252936),
-        child: Icon(Icons.movie_outlined, color: Colors.white),
-      );
-    }
-
     return Stack(
       fit: StackFit.expand,
       children: [
-        Image.network(movie.posterUrl, fit: BoxFit.cover),
+        CachedAppImage(imageUrl: movie.posterUrl),
         const DecoratedBox(
           decoration: BoxDecoration(
             gradient: LinearGradient(
@@ -427,21 +420,11 @@ class _PickedMovieCard extends StatelessWidget {
                 tag: 'movie-poster-${movie.id}',
                 child: ClipRRect(
                   borderRadius: BorderRadius.circular(8),
-                  child: movie.posterUrl.isEmpty
-                      ? const SizedBox(
-                          width: 72,
-                          height: 108,
-                          child: ColoredBox(
-                            color: Color(0xFF252936),
-                            child: Icon(Icons.movie_outlined),
-                          ),
-                        )
-                      : Image.network(
-                          movie.posterUrl,
-                          width: 72,
-                          height: 108,
-                          fit: BoxFit.cover,
-                        ),
+                  child: CachedAppImage(
+                    imageUrl: movie.posterUrl,
+                    width: 72,
+                    height: 108,
+                  ),
                 ),
               ),
               const SizedBox(width: 14),
