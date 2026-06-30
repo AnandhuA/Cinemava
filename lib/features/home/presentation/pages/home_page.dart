@@ -1,4 +1,6 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
 import '../../../../core/responsive/responsive.dart';
@@ -8,8 +10,28 @@ import '../../../movies/presentation/providers/movie_library_provider.dart';
 import '../../../movies/presentation/widgets/movie_poster_card.dart';
 import '../../../onboarding/presentation/providers/user_preference_provider.dart';
 
-class HomePage extends StatelessWidget {
+class HomePage extends StatefulWidget {
   const HomePage({super.key});
+
+  @override
+  State<HomePage> createState() => _HomePageState();
+}
+
+class _HomePageState extends State<HomePage> {
+  Set<String> _loadedLanguages = {};
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final languages = context.read<UserPreferenceProvider>().selectedLanguages;
+    if (setEquals(_loadedLanguages, languages)) return;
+
+    _loadedLanguages = Set<String>.from(languages);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      context.read<MovieLibraryProvider>().loadLanguageMovies(languages);
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -20,6 +42,7 @@ class HomePage extends StatelessWidget {
       genres: preferences.selectedGenres,
       languages: preferences.selectedLanguages,
     );
+    final selectedLanguages = preferences.selectedLanguages.toList()..sort();
 
     return Scaffold(
       body: CustomScrollView(
@@ -42,6 +65,8 @@ class HomePage extends StatelessWidget {
               child: Center(child: Text('No movies found.')),
             )
           else ...[
+            if (selectedLanguages.isNotEmpty)
+              _LanguageMovieTabs(languages: selectedLanguages),
             SliverToBoxAdapter(
               child: _TrendingPosterFeature(movie: movies.first),
             ),
@@ -58,6 +83,80 @@ class HomePage extends StatelessWidget {
   }
 }
 
+class _LanguageMovieTabs extends StatelessWidget {
+  const _LanguageMovieTabs({required this.languages});
+
+  final List<String> languages;
+
+  @override
+  Widget build(BuildContext context) {
+    final provider = context.watch<MovieLibraryProvider>();
+
+    return SliverToBoxAdapter(
+      child: DefaultTabController(
+        length: languages.length,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            SectionHeader(title: 'Your Setup', actionLabel: 'Languages'),
+            TabBar(
+              isScrollable: true,
+              tabAlignment: TabAlignment.start,
+              padding: const EdgeInsets.symmetric(horizontal: 12),
+              tabs: [for (final language in languages) Tab(text: language)],
+            ),
+            SizedBox(
+              height: Responsive.movieRailHeight(context) + 20,
+              child: TabBarView(
+                children: [
+                  for (final language in languages)
+                    _LanguageMovieRail(
+                      language: language,
+                      movies: provider.moviesForLanguage(language),
+                      isLoading: provider.isLoadingLanguage(language),
+                    ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _LanguageMovieRail extends StatelessWidget {
+  const _LanguageMovieRail({
+    required this.language,
+    required this.movies,
+    required this.isLoading,
+  });
+
+  final String language;
+  final List<Movie> movies;
+  final bool isLoading;
+
+  @override
+  Widget build(BuildContext context) {
+    if (isLoading && movies.isEmpty) {
+      return const Center(child: CircularProgressIndicator());
+    }
+
+    if (movies.isEmpty) {
+      return Center(child: Text('No $language movies loaded yet.'));
+    }
+
+    return ListView.separated(
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+      scrollDirection: Axis.horizontal,
+      itemCount: movies.length,
+      separatorBuilder: (_, _) => const SizedBox(width: 14),
+      itemBuilder: (context, index) =>
+          MoviePosterRailCard(movie: movies[index]),
+    );
+  }
+}
+
 class _TrendingPosterFeature extends StatelessWidget {
   const _TrendingPosterFeature({required this.movie});
 
@@ -67,72 +166,80 @@ class _TrendingPosterFeature extends StatelessWidget {
   Widget build(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
-      child: DecoratedBox(
-        decoration: BoxDecoration(
-          color: Theme.of(context).cardColor,
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
           borderRadius: BorderRadius.circular(8),
-          border: Border.all(color: Theme.of(context).dividerColor),
-        ),
-        child: Padding(
-          padding: const EdgeInsets.all(14),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
-              ClipRRect(
-                borderRadius: BorderRadius.circular(8),
-                child: movie.posterUrl.isEmpty
-                    ? const SizedBox(
-                        width: 124,
-                        height: 186,
-                        child: ColoredBox(
-                          color: Color(0xFF252936),
-                          child: Icon(Icons.movie_outlined),
+          onTap: () => context.push('/movie/${movie.id}'),
+          child: DecoratedBox(
+            decoration: BoxDecoration(
+              color: Theme.of(context).cardColor,
+              borderRadius: BorderRadius.circular(8),
+              border: Border.all(color: Theme.of(context).dividerColor),
+            ),
+            child: Padding(
+              padding: const EdgeInsets.all(14),
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  Hero(
+                    tag: 'movie-poster-${movie.id}',
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(8),
+                      child: movie.posterUrl.isEmpty
+                          ? const SizedBox(
+                              width: 124,
+                              height: 186,
+                              child: ColoredBox(
+                                color: Color(0xFF252936),
+                                child: Icon(Icons.movie_outlined),
+                              ),
+                            )
+                          : Image.network(
+                              movie.posterUrl,
+                              width: 124,
+                              height: 186,
+                              fit: BoxFit.cover,
+                            ),
+                    ),
+                  ),
+                  const SizedBox(width: 16),
+                  Expanded(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          'Trending Movie',
+                          style: Theme.of(context).textTheme.labelLarge
+                              ?.copyWith(
+                                color: Theme.of(context).colorScheme.primary,
+                              ),
                         ),
-                      )
-                    : Image.network(
-                        movie.posterUrl,
-                        width: 124,
-                        height: 186,
-                        fit: BoxFit.cover,
-                      ),
+                        const SizedBox(height: 6),
+                        Text(
+                          movie.title,
+                          style: Theme.of(context).textTheme.headlineSmall
+                              ?.copyWith(fontWeight: FontWeight.w900),
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          '${movie.year} • ${movie.language} • ${movie.genres.join(', ')}',
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: Theme.of(context).textTheme.bodyMedium
+                              ?.copyWith(
+                                color: Theme.of(
+                                  context,
+                                ).colorScheme.onSurfaceVariant,
+                              ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ],
               ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      'Trending Movie',
-                      style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                        color: Theme.of(context).colorScheme.primary,
-                      ),
-                    ),
-                    const SizedBox(height: 6),
-                    Text(
-                      movie.title,
-                      style: Theme.of(context).textTheme.headlineSmall
-                          ?.copyWith(fontWeight: FontWeight.w900),
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      '${movie.year} • ${movie.language} • ${movie.genres.join(', ')}',
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        color: Theme.of(context).colorScheme.onSurfaceVariant,
-                      ),
-                    ),
-                    const SizedBox(height: 14),
-                    FilledButton.icon(
-                      onPressed: () {},
-                      icon: const Icon(Icons.play_arrow),
-                      label: const Text('Start with this'),
-                    ),
-                  ],
-                ),
-              ),
-            ],
+            ),
           ),
         ),
       ),

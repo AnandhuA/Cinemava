@@ -25,9 +25,9 @@ class AppShell extends StatelessWidget {
         label: 'Watchlist',
       ),
       NavigationDestination(
-        icon: Icon(Icons.edit_note_outlined),
-        selectedIcon: Icon(Icons.edit_note),
-        label: 'Journal',
+        icon: Icon(Icons.casino_outlined),
+        selectedIcon: Icon(Icons.casino),
+        label: 'Pick',
       ),
       NavigationDestination(
         icon: Icon(Icons.person_outline),

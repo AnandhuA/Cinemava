@@ -7,6 +7,7 @@ import '../../features/journal/presentation/pages/journal_page.dart';
 import '../../features/movie_details/presentation/pages/movie_details_page.dart';
 import '../../features/onboarding/presentation/pages/onboarding_page.dart';
 import '../../features/profile/presentation/pages/profile_page.dart';
+import '../../features/random_pick/presentation/pages/random_pick_page.dart';
 import '../../features/settings/presentation/pages/settings_page.dart';
 import '../../features/shell/presentation/pages/app_shell.dart';
 import '../../features/splash/presentation/pages/splash_page.dart';
@@ -54,8 +55,8 @@ class AppRouter {
           StatefulShellBranch(
             routes: [
               GoRoute(
-                path: '/journal',
-                builder: (context, state) => const JournalPage(),
+                path: '/pick',
+                builder: (context, state) => const RandomPickPage(),
               ),
             ],
           ),
@@ -73,6 +74,10 @@ class AppRouter {
         path: '/movie/:id',
         builder: (context, state) =>
             MovieDetailsPage(movieId: int.parse(state.pathParameters['id']!)),
+      ),
+      GoRoute(
+        path: '/journal',
+        builder: (context, state) => const JournalPage(),
       ),
       GoRoute(
         path: '/watched',

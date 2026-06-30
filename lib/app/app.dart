@@ -10,6 +10,7 @@ import '../features/journal/presentation/providers/journal_provider.dart';
 import '../features/movies/data/repositories/tmdb_movie_repository.dart';
 import '../features/movies/presentation/providers/movie_library_provider.dart';
 import '../features/onboarding/presentation/providers/user_preference_provider.dart';
+import '../features/random_pick/presentation/providers/spin_wheel_provider.dart';
 
 class CinemavaApp extends StatelessWidget {
   const CinemavaApp({super.key});
@@ -27,11 +28,15 @@ class CinemavaApp extends StatelessWidget {
           ),
         ),
         ChangeNotifierProvider(
-          create: (_) =>
-              MovieLibraryProvider(TmdbMovieRepository(_createDio()))
-                ..loadInitialMovies(),
+          create: (_) => MovieLibraryProvider(
+            TmdbMovieRepository(
+              _createDio(),
+              Hive.isBoxOpen('tmdb_cache') ? Hive.box('tmdb_cache') : null,
+            ),
+          )..loadInitialMovies(),
         ),
         ChangeNotifierProvider(create: (_) => JournalProvider()),
+        ChangeNotifierProvider(create: (_) => SpinWheelProvider()),
       ],
       child: Consumer<ThemeProvider>(
         builder: (context, themeProvider, _) {

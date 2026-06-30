@@ -13,13 +13,17 @@ class MovieLibraryProvider extends ChangeNotifier {
   List<Movie> _topRated = [];
   List<Movie> _upcoming = [];
   List<Movie> _searchResults = [];
+  final Map<String, List<Movie>> _moviesByLanguage = {};
   final Map<int, MovieDetails> _detailsByMovieId = {};
   final Set<int> _watchlistIds = {};
   final Set<int> _watchedIds = {};
+  final Set<String> _loadingLanguages = {};
   String _query = '';
+  int _searchRequestId = 0;
   bool _isLoading = false;
   bool _isSearching = false;
   String? _errorMessage;
+  String? _searchErrorMessage;
   int? _loadingDetailsMovieId;
   String? _detailsErrorMessage;
 
@@ -28,12 +32,19 @@ class MovieLibraryProvider extends ChangeNotifier {
   List<Movie> get popular => List.unmodifiable(_popular);
   List<Movie> get topRated => List.unmodifiable(_topRated);
   List<Movie> get upcoming => List.unmodifiable(_upcoming);
+  List<Movie> get availableMovies => List.unmodifiable(_allMovies);
+  Map<String, List<Movie>> get moviesByLanguage => Map.unmodifiable(
+    _moviesByLanguage.map(
+      (language, movies) => MapEntry(language, List.unmodifiable(movies)),
+    ),
+  );
   Set<int> get watchlistIds => Set.unmodifiable(_watchlistIds);
   Set<int> get watchedIds => Set.unmodifiable(_watchedIds);
   String get query => _query;
   bool get isLoading => _isLoading;
   bool get isSearching => _isSearching;
   String? get errorMessage => _errorMessage;
+  String? get searchErrorMessage => _searchErrorMessage;
   int? get loadingDetailsMovieId => _loadingDetailsMovieId;
   String? get detailsErrorMessage => _detailsErrorMessage;
 
@@ -45,6 +56,7 @@ class MovieLibraryProvider extends ChangeNotifier {
       ..._topRated,
       ..._upcoming,
       ..._searchResults,
+      ..._moviesByLanguage.values.expand((movies) => movies),
       ..._detailsByMovieId.values.expand((details) => details.recommendations),
     ]) {
       map[movie.id] = movie;
@@ -71,8 +83,15 @@ class MovieLibraryProvider extends ChangeNotifier {
     final source = _allMovies;
     if (genres.isEmpty && languages.isEmpty) return source;
 
+    final matches = source.where((movie) {
+      final genreMatch = genres.isEmpty || movie.genres.any(genres.contains);
+      final languageMatch =
+          languages.isEmpty || languages.contains(movie.language);
+      return genreMatch && languageMatch;
+    }).toList();
+
     final scored =
-        source.map((movie) {
+        (matches.isEmpty ? source : matches).map((movie) {
           final genreScore = movie.genres
               .where((genre) => genres.contains(genre))
               .length;
@@ -104,43 +123,98 @@ class MovieLibraryProvider extends ChangeNotifier {
     _errorMessage = null;
     notifyListeners();
 
-    try {
-      _trending = await _repository.trending();
-      notifyListeners();
-      _popular = await _repository.popular();
-      notifyListeners();
-      _topRated = await _repository.topRated();
-      notifyListeners();
-      _upcoming = await _repository.upcoming();
-    } catch (error) {
-      _errorMessage = error.toString();
-    } finally {
-      _isLoading = false;
-      notifyListeners();
+    Object? latestError;
+    latestError = await _loadSection(() => _repository.trending(), (movies) {
+      _trending = movies;
+    });
+    latestError = await _loadSection(() => _repository.cachedPopular(), (
+      movies,
+    ) {
+      _popular = movies;
+    }, fallbackError: latestError);
+    latestError = await _loadSection(() => _repository.cachedTopRated(), (
+      movies,
+    ) {
+      _topRated = movies;
+    }, fallbackError: latestError);
+    latestError = await _loadSection(() => _repository.cachedUpcoming(), (
+      movies,
+    ) {
+      _upcoming = movies;
+    }, fallbackError: latestError);
+
+    if (_allMovies.isEmpty && latestError != null) {
+      _errorMessage = latestError.toString();
     }
+
+    _isLoading = false;
+    notifyListeners();
   }
 
   Future<void> setQuery(String value) async {
     _query = value;
+    _searchErrorMessage = null;
     final normalized = _query.trim();
     if (normalized.isEmpty) {
       _searchResults = [];
+      _isSearching = false;
       notifyListeners();
       return;
     }
 
+    final requestId = ++_searchRequestId;
     _isSearching = true;
     notifyListeners();
 
     try {
-      _searchResults = await _repository.search(normalized);
+      final results = await _repository.search(normalized);
+      if (requestId != _searchRequestId) return;
+      _searchResults = results;
     } catch (error) {
-      _errorMessage = error.toString();
-    } finally {
-      _isSearching = false;
+      if (requestId != _searchRequestId) return;
+      final localResults = _localSearch(normalized);
+      _searchResults = localResults;
+      if (localResults.isEmpty) {
+        _searchErrorMessage = error.toString();
+      }
+    }
+
+    if (requestId != _searchRequestId) return;
+    _isSearching = false;
+    notifyListeners();
+  }
+
+  Future<void> loadLanguageMovies(Iterable<String> languages) async {
+    for (final language in languages) {
+      if (_moviesByLanguage.containsKey(language) ||
+          _loadingLanguages.contains(language)) {
+        continue;
+      }
+
+      _loadingLanguages.add(language);
       notifyListeners();
+
+      try {
+        _moviesByLanguage[language] = await _repository.moviesByLanguage(
+          language,
+        );
+      } catch (_) {
+        _moviesByLanguage[language] = _allMovies
+            .where((movie) => movie.language == language)
+            .toList();
+      } finally {
+        _loadingLanguages.remove(language);
+        notifyListeners();
+      }
     }
   }
+
+  List<Movie> moviesForLanguage(String language) {
+    return List.unmodifiable(_moviesByLanguage[language] ?? const []);
+  }
+
+  bool isLoadingLanguage(String language) =>
+      _loadingLanguages.contains(language);
 
   Future<void> loadMovieDetails(int id) async {
     if (_detailsByMovieId.containsKey(id) || _loadingDetailsMovieId == id) {
@@ -158,7 +232,9 @@ class MovieLibraryProvider extends ChangeNotifier {
       final details = await _repository.movieDetails(movie);
       _detailsByMovieId[id] = details;
     } catch (error) {
-      _detailsErrorMessage = error.toString();
+      _detailsErrorMessage = error is TmdbNetworkException
+          ? error.message
+          : 'Extra movie details are temporarily unavailable.';
     } finally {
       _loadingDetailsMovieId = null;
       notifyListeners();
@@ -177,6 +253,32 @@ class MovieLibraryProvider extends ChangeNotifier {
       _watchedIds.remove(id);
     }
     notifyListeners();
+  }
+
+  Future<Object?> _loadSection(
+    Future<List<Movie>> Function() load,
+    void Function(List<Movie>) save, {
+    Object? fallbackError,
+  }) async {
+    try {
+      save(await load());
+      notifyListeners();
+      return null;
+    } catch (error) {
+      return fallbackError ?? error;
+    }
+  }
+
+  List<Movie> _localSearch(String query) {
+    final normalized = query.toLowerCase();
+    return _allMovies.where((movie) {
+      final titleMatch = movie.title.toLowerCase().contains(normalized);
+      final languageMatch = movie.language.toLowerCase().contains(normalized);
+      final genreMatch = movie.genres.any(
+        (genre) => genre.toLowerCase().contains(normalized),
+      );
+      return titleMatch || languageMatch || genreMatch;
+    }).toList();
   }
 }
 

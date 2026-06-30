@@ -6,6 +6,7 @@ import '../../../movies/domain/entities/movie.dart';
 import '../../../movies/domain/entities/movie_details.dart';
 import '../../../movies/presentation/providers/movie_library_provider.dart';
 import '../../../movies/presentation/widgets/movie_grid.dart';
+import '../../../random_pick/presentation/providers/spin_wheel_provider.dart';
 
 class MovieDetailsPage extends StatefulWidget {
   const MovieDetailsPage({super.key, required this.movieId});
@@ -208,6 +209,7 @@ class _ActionButtons extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final provider = context.watch<MovieLibraryProvider>();
+    final wheel = context.watch<SpinWheelProvider>();
     final trailerUrl = details?.trailerUrl;
 
     return Wrap(
@@ -236,6 +238,26 @@ class _ActionButtons extends StatelessWidget {
           ),
           label: Text(
             provider.isWatched(movie.id) ? 'Watched' : 'Mark Watched',
+          ),
+        ),
+        OutlinedButton.icon(
+          onPressed: wheel.contains(movie.id)
+              ? null
+              : () {
+                  final added = wheel.addPriorityMovie(movie);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(
+                        added
+                            ? 'Added ${movie.title} to the spin wheel.'
+                            : '${movie.title} is already in the spin wheel.',
+                      ),
+                    ),
+                  );
+                },
+          icon: const Icon(Icons.casino_outlined),
+          label: Text(
+            wheel.contains(movie.id) ? 'In Spin Wheel' : 'Add to Spin',
           ),
         ),
         OutlinedButton.icon(

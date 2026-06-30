@@ -49,6 +49,12 @@ class ProfilePage extends StatelessWidget {
           ),
           const SizedBox(height: 12),
           ListTile(
+            leading: const Icon(Icons.edit_note_outlined),
+            title: const Text('Journal'),
+            trailing: const Icon(Icons.chevron_right),
+            onTap: () => context.push('/journal'),
+          ),
+          ListTile(
             leading: const Icon(Icons.visibility_outlined),
             title: const Text('Watched movies'),
             trailing: const Icon(Icons.chevron_right),

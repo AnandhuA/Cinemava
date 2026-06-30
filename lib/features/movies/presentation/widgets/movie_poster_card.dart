@@ -29,7 +29,7 @@ class MoviePosterCard extends StatelessWidget {
 
         return InkWell(
           borderRadius: BorderRadius.circular(8),
-          onTap: () => context.go('/movie/${movie.id}'),
+          onTap: () => context.push('/movie/${movie.id}'),
           child: SizedBox(
             width: width,
             child: Column(
@@ -87,7 +87,7 @@ class MoviePosterRailCard extends StatelessWidget {
           width: width,
           child: InkWell(
             borderRadius: BorderRadius.circular(8),
-            onTap: () => context.go('/movie/${movie.id}'),
+            onTap: () => context.push('/movie/${movie.id}'),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
