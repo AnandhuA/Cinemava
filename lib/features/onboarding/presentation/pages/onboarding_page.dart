@@ -4,9 +4,14 @@ import 'package:provider/provider.dart';
 
 import '../providers/user_preference_provider.dart';
 
-class OnboardingPage extends StatelessWidget {
+class OnboardingPage extends StatefulWidget {
   const OnboardingPage({super.key});
 
+  @override
+  State<OnboardingPage> createState() => _OnboardingPageState();
+}
+
+class _OnboardingPageState extends State<OnboardingPage> {
   static const _genres = [
     'Action',
     'Comedy',
@@ -29,6 +34,21 @@ class OnboardingPage extends StatelessWidget {
     'Kannada',
   ];
 
+  late final TextEditingController _nameController;
+
+  @override
+  void initState() {
+    super.initState();
+    final preferences = context.read<UserPreferenceProvider>();
+    _nameController = TextEditingController(text: preferences.displayName);
+  }
+
+  @override
+  void dispose() {
+    _nameController.dispose();
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
     final preferences = context.watch<UserPreferenceProvider>();
@@ -38,60 +58,72 @@ class OnboardingPage extends StatelessWidget {
         child: ListView(
           padding: const EdgeInsets.all(24),
           children: [
-            const SizedBox(height: 24),
+            const SizedBox(height: 18),
             Icon(
               Icons.movie_filter_rounded,
               size: 48,
               color: Theme.of(context).colorScheme.primary,
             ),
-            const SizedBox(height: 24),
+            const SizedBox(height: 22),
             Text(
-              'Tune Cinemava to your taste.',
+              'Set up your movie space.',
               style: Theme.of(
                 context,
               ).textTheme.headlineLarge?.copyWith(fontWeight: FontWeight.w900),
             ),
-            const SizedBox(height: 12),
+            const SizedBox(height: 10),
             Text(
-              'Pick what you like now. Cinemava will save it locally and use it for better suggestions next time.',
+              'Tell Cinemava your name and interests. Your setup stays local and shapes Home, Discover, and recommendations.',
               style: Theme.of(context).textTheme.bodyLarge?.copyWith(
                 color: Theme.of(context).colorScheme.onSurfaceVariant,
                 height: 1.45,
               ),
             ),
+            const SizedBox(height: 24),
+            TextField(
+              controller: _nameController,
+              textCapitalization: TextCapitalization.words,
+              onChanged: context.read<UserPreferenceProvider>().setDisplayName,
+              decoration: const InputDecoration(
+                labelText: 'Your name',
+                hintText: 'Example: Arjun',
+                prefixIcon: Icon(Icons.person_outline),
+              ),
+            ),
             const SizedBox(height: 28),
             _ChoiceGroup(
-              title: 'Genres you like',
+              title: 'Choose interests',
               values: _genres,
               selectedValues: preferences.selectedGenres,
               onSelected: context.read<UserPreferenceProvider>().toggleGenre,
             ),
             const SizedBox(height: 28),
             _ChoiceGroup(
-              title: 'Languages you watch',
+              title: 'Choose languages',
               values: _languages,
               selectedValues: preferences.selectedLanguages,
               onSelected: context.read<UserPreferenceProvider>().toggleLanguage,
             ),
             const SizedBox(height: 32),
-            FilledButton(
+            FilledButton.icon(
               onPressed: preferences.canContinue
                   ? () async {
                       await context
                           .read<UserPreferenceProvider>()
                           .savePreferences();
-                      if (context.mounted) context.go('/login');
+                      if (context.mounted) context.go('/');
                     }
                   : null,
-              child: const Text('Save and continue'),
+              icon: const Icon(Icons.home_outlined),
+              label: const Text('Save and go home'),
             ),
             const SizedBox(height: 12),
-            TextButton(
-              onPressed: () async {
-                await context.read<UserPreferenceProvider>().savePreferences();
-                if (context.mounted) context.go('/');
-              },
-              child: const Text('Skip for now'),
+            Text(
+              'Name, one interest, and one language are required.',
+              textAlign: TextAlign.center,
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+              ),
             ),
           ],
         ),

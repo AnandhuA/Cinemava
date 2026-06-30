@@ -44,7 +44,7 @@ class MarathonPage extends StatelessWidget {
                           ),
                           const SizedBox(height: 4),
                           Text(
-                            '${marathon.subtitle} • ${marathon.items.length} movies • ${_formatRuntime(marathon.totalRuntimeMinutes)}',
+                            '${marathon.subtitle} • TMDb collections',
                             style: Theme.of(context).textTheme.bodyMedium
                                 ?.copyWith(
                                   color: Theme.of(
@@ -64,12 +64,5 @@ class MarathonPage extends StatelessWidget {
         },
       ),
     );
-  }
-
-  String _formatRuntime(int minutes) {
-    final hours = minutes ~/ 60;
-    final remainingMinutes = minutes % 60;
-    if (hours == 0) return '${remainingMinutes}m';
-    return '${hours}h ${remainingMinutes}m';
   }
 }

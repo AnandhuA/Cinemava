@@ -3,12 +3,14 @@ import 'package:go_router/go_router.dart';
 import '../../features/auth/presentation/pages/login_page.dart';
 import '../../features/discover/presentation/pages/discover_page.dart';
 import '../../features/home/presentation/pages/home_page.dart';
+import '../../features/journal/presentation/pages/journal_editor_page.dart';
 import '../../features/journal/presentation/pages/journal_page.dart';
 import '../../features/marathon/data/marathon_data.dart';
 import '../../features/marathon/presentation/pages/marathon_details_page.dart';
 import '../../features/marathon/presentation/pages/marathon_page.dart';
 import '../../features/movie_details/presentation/pages/movie_details_page.dart';
 import '../../features/onboarding/presentation/pages/onboarding_page.dart';
+import '../../features/people/presentation/pages/person_movies_page.dart';
 import '../../features/profile/presentation/pages/profile_page.dart';
 import '../../features/profile/presentation/pages/preference_settings_page.dart';
 import '../../features/random_pick/presentation/pages/random_pick_page.dart';
@@ -82,6 +84,18 @@ class AppRouter {
       GoRoute(
         path: '/journal',
         builder: (context, state) => const JournalPage(),
+      ),
+      GoRoute(
+        path: '/journal/movie/:id',
+        builder: (context, state) =>
+            JournalEditorPage(movieId: int.parse(state.pathParameters['id']!)),
+      ),
+      GoRoute(
+        path: '/person/:id',
+        builder: (context, state) => PersonMoviesPage(
+          personId: int.parse(state.pathParameters['id']!),
+          personName: state.uri.queryParameters['name'] ?? '',
+        ),
       ),
       GoRoute(
         path: '/watchlist',

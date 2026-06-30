@@ -40,7 +40,9 @@ class StatisticsPage extends StatelessWidget {
           ),
           _StatCard(
             label: 'Avg rating',
-            value: journal.entries.isEmpty ? '-' : '4.5',
+            value: journal.entries.isEmpty
+                ? '-'
+                : journal.averageRating.toStringAsFixed(1),
             icon: Icons.star,
           ),
         ],

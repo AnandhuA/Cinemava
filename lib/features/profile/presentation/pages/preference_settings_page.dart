@@ -4,9 +4,14 @@ import 'package:provider/provider.dart';
 
 import '../../../onboarding/presentation/providers/user_preference_provider.dart';
 
-class PreferenceSettingsPage extends StatelessWidget {
+class PreferenceSettingsPage extends StatefulWidget {
   const PreferenceSettingsPage({super.key});
 
+  @override
+  State<PreferenceSettingsPage> createState() => _PreferenceSettingsPageState();
+}
+
+class _PreferenceSettingsPageState extends State<PreferenceSettingsPage> {
   static const _genres = [
     'Action',
     'Comedy',
@@ -29,6 +34,21 @@ class PreferenceSettingsPage extends StatelessWidget {
     'Kannada',
   ];
 
+  late final TextEditingController _nameController;
+
+  @override
+  void initState() {
+    super.initState();
+    final preferences = context.read<UserPreferenceProvider>();
+    _nameController = TextEditingController(text: preferences.displayName);
+  }
+
+  @override
+  void dispose() {
+    _nameController.dispose();
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
     final preferences = context.watch<UserPreferenceProvider>();
@@ -38,8 +58,18 @@ class PreferenceSettingsPage extends StatelessWidget {
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
+          TextField(
+            controller: _nameController,
+            textCapitalization: TextCapitalization.words,
+            onChanged: context.read<UserPreferenceProvider>().setDisplayName,
+            decoration: const InputDecoration(
+              labelText: 'Your name',
+              prefixIcon: Icon(Icons.person_outline),
+            ),
+          ),
+          const SizedBox(height: 28),
           Text(
-            'Genres',
+            'Interests',
             style: Theme.of(
               context,
             ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w900),
@@ -74,7 +104,7 @@ class PreferenceSettingsPage extends StatelessWidget {
                   }
                 : null,
             icon: const Icon(Icons.save_outlined),
-            label: const Text('Save preferences'),
+            label: const Text('Save setup'),
           ),
         ],
       ),

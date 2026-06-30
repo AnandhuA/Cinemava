@@ -6,7 +6,7 @@ import 'app_colors.dart';
 class ThemeProvider extends ChangeNotifier {
   ThemeProvider(this._box) {
     _themeMode = _themeModeFromName(
-      _box?.get(_themeModeKey, defaultValue: ThemeMode.dark.name) as String?,
+      _box?.get(_themeModeKey, defaultValue: ThemeMode.system.name) as String?,
     );
     _accentColor = Color(
       _box?.get(_accentColorKey, defaultValue: AppColors.primary.toARGB32())
@@ -43,6 +43,6 @@ class ThemeProvider extends ChangeNotifier {
     for (final mode in ThemeMode.values) {
       if (mode.name == name) return mode;
     }
-    return ThemeMode.dark;
+    return ThemeMode.system;
   }
 }

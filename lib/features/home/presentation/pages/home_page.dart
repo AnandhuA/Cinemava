@@ -270,6 +270,14 @@ class _HomeErrorState extends StatelessWidget {
               color: Theme.of(context).colorScheme.onSurfaceVariant,
             ),
           ),
+          const SizedBox(height: 18),
+          FilledButton.icon(
+            onPressed: () {
+              context.read<MovieLibraryProvider>().loadInitialMovies();
+            },
+            icon: const Icon(Icons.refresh),
+            label: const Text('Reload'),
+          ),
         ],
       ),
     );
@@ -284,11 +292,15 @@ class _MovieRail extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    if (movies.isEmpty) {
+      return const SliverToBoxAdapter(child: SizedBox.shrink());
+    }
+
     return SliverToBoxAdapter(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          SectionHeader(title: title, actionLabel: 'See all'),
+          SectionHeader(title: title),
           SizedBox(
             height: Responsive.movieRailHeight(context),
             child: ListView.separated(

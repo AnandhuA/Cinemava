@@ -39,9 +39,14 @@ class CinemavaApp extends StatelessWidget {
               _createDio(),
               Hive.isBoxOpen('tmdb_cache') ? Hive.box('tmdb_cache') : null,
             ),
+            Hive.isBoxOpen('movie_library') ? Hive.box('movie_library') : null,
           )..loadInitialMovies(),
         ),
-        ChangeNotifierProvider(create: (_) => JournalProvider()),
+        ChangeNotifierProvider(
+          create: (_) => JournalProvider(
+            Hive.isBoxOpen('journal') ? Hive.box('journal') : null,
+          ),
+        ),
         ChangeNotifierProvider(
           create: (_) => SpinWheelProvider(
             Hive.isBoxOpen('spin_wheel') ? Hive.box('spin_wheel') : null,

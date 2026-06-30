@@ -12,6 +12,9 @@ class ProfilePage extends StatelessWidget {
   Widget build(BuildContext context) {
     final movieProvider = context.watch<MovieLibraryProvider>();
     final preferences = context.watch<UserPreferenceProvider>();
+    final displayName = preferences.displayName.trim().isEmpty
+        ? 'Cinephile'
+        : preferences.displayName.trim();
 
     return Scaffold(
       appBar: AppBar(title: const Text('Profile')),
@@ -34,12 +37,12 @@ class ProfilePage extends StatelessWidget {
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
                         Text(
-                          'Guest Cinephile',
+                          displayName,
                           style: Theme.of(context).textTheme.titleLarge
                               ?.copyWith(fontWeight: FontWeight.w800),
                         ),
                         Text(
-                          'Local MVP profile',
+                          'Local Cinemava profile',
                           style: Theme.of(context).textTheme.bodyMedium
                               ?.copyWith(
                                 color: Theme.of(

@@ -5,6 +5,7 @@ import 'package:hive/hive.dart';
 import '../../../../core/constants/api_constants.dart';
 import '../../domain/entities/movie_details.dart';
 import '../../domain/entities/movie.dart';
+import '../../domain/entities/person_profile.dart';
 import '../models/tmdb_movie_dto.dart';
 
 class TmdbMovieRepository {
@@ -26,6 +27,80 @@ class TmdbMovieRepository {
 
   Future<List<Movie>> search(String query) {
     return _getMovies('/search/movie', extraParams: {'query': query});
+  }
+
+  Future<List<Movie>> collectionMovies(List<String> collectionQueries) async {
+    final byId = <int, Movie>{};
+
+    for (final query in collectionQueries) {
+      final movies = await _moviesForCollectionQuery(query);
+      for (final movie in movies) {
+        byId[movie.id] = movie;
+      }
+    }
+
+    final movies = byId.values.toList()
+      ..sort((a, b) {
+        final yearCompare = a.year.compareTo(b.year);
+        if (yearCompare != 0) return yearCompare;
+        return a.title.compareTo(b.title);
+      });
+    return movies;
+  }
+
+  Future<List<Movie>> personMovies(int personId) async {
+    try {
+      final response = await _getMap('/person/$personId/movie_credits');
+      return _moviesFromPersonCredits(response);
+    } on DioException catch (error) {
+      _logDioError(
+        path: '/person/$personId/movie_credits',
+        authMode: 'person',
+        error: error,
+      );
+      throw TmdbNetworkException(_friendlyDioMessage(error));
+    }
+  }
+
+  Future<PersonProfile> personProfile(int personId) async {
+    try {
+      final response = await _getMap('/person/$personId');
+      return _personProfileFromMap(response);
+    } on DioException catch (error) {
+      _logDioError(path: '/person/$personId', authMode: 'person', error: error);
+      throw TmdbNetworkException(_friendlyDioMessage(error));
+    }
+  }
+
+  Future<Movie> movie(int id) async {
+    try {
+      final response = await _getMap('/movie/$id');
+      return _movieFromDetails(response);
+    } on DioException catch (error) {
+      _logDioError(path: '/movie/$id', authMode: 'movie', error: error);
+      throw TmdbNetworkException(_friendlyDioMessage(error));
+    }
+  }
+
+  Future<List<Movie>> _moviesForCollectionQuery(String query) async {
+    try {
+      final search = await _getMap(
+        '/search/collection',
+        extraParams: {'query': query, 'include_adult': false},
+      );
+      final collectionId = _bestCollectionId(query, search);
+      if (collectionId == null) return const [];
+
+      final collection = await _getMap('/collection/$collectionId');
+      return _moviesFromCollectionParts(collection);
+    } on DioException catch (error) {
+      _logDioError(
+        path: '/search/collection',
+        authMode: 'collection',
+        error: error,
+      );
+      throw TmdbNetworkException(_friendlyDioMessage(error));
+    }
   }
 
   Future<List<Movie>> moviesByLanguage(String language) {
@@ -181,6 +256,113 @@ class TmdbMovieRepository {
         .toList();
   }
 
+  List<Movie> _moviesFromCollectionParts(Map<String, dynamic> response) {
+    final parts =
+        ((response['parts'] as List<dynamic>?) ?? const [])
+            .whereType<Map<String, dynamic>>()
+            .toList()
+          ..sort((a, b) {
+            final left = a['release_date'] as String? ?? '9999-99-99';
+            final right = b['release_date'] as String? ?? '9999-99-99';
+            return left.compareTo(right);
+          });
+
+    return parts
+        .map(TmdbMovieDto.fromJson)
+        .where((movie) => movie.id != 0)
+        .map((movie) => movie.toEntity())
+        .toList();
+  }
+
+  List<Movie> _moviesFromPersonCredits(Map<String, dynamic> response) {
+    final byId = <int, Movie>{};
+    final credits =
+        ((response['cast'] as List<dynamic>?) ?? const [])
+            .whereType<Map<String, dynamic>>()
+            .where((item) => item['release_date'] != null)
+            .toList()
+          ..sort((a, b) {
+            final left = a['release_date'] as String? ?? '9999-99-99';
+            final right = b['release_date'] as String? ?? '9999-99-99';
+            return right.compareTo(left);
+          });
+
+    for (final credit in credits) {
+      final dto = TmdbMovieDto.fromJson(credit);
+      final movie = dto.toEntity();
+      if (movie.id != 0 && movie.posterUrl.isNotEmpty) {
+        byId[movie.id] = movie;
+      }
+    }
+    return byId.values.toList();
+  }
+
+  int? _bestCollectionId(String query, Map<String, dynamic> response) {
+    final results = ((response['results'] as List<dynamic>?) ?? const [])
+        .whereType<Map<String, dynamic>>()
+        .toList();
+    if (results.isEmpty) return null;
+
+    final normalizedQuery = _normalizeCollectionName(query);
+    Map<String, dynamic>? best;
+    for (final result in results) {
+      final name = result['name'] as String? ?? '';
+      if (_normalizeCollectionName(name) == normalizedQuery) {
+        best = result;
+        break;
+      }
+    }
+    best ??= results.first;
+    return best['id'] as int?;
+  }
+
+  String _normalizeCollectionName(String value) {
+    return value.toLowerCase().replaceAll(RegExp(r'[^a-z0-9]+'), ' ').trim();
+  }
+
+  Movie _movieFromDetails(Map<String, dynamic> response) {
+    final releaseDate = response['release_date'] as String? ?? '';
+    final genres = (response['genres'] as List<dynamic>? ?? const [])
+        .whereType<Map>()
+        .map((genre) => genre['name'] as String? ?? 'Movie')
+        .where((genre) => genre.isNotEmpty)
+        .toList();
+    final languageCode = response['original_language'] as String? ?? '';
+
+    return Movie(
+      id: response['id'] as int? ?? 0,
+      title: (response['title'] ?? response['name'] ?? 'Untitled') as String,
+      year: _releaseYear(releaseDate),
+      runtime: _formatRuntime(response['runtime'] as int?),
+      genres: genres,
+      language: _languageNames[languageCode] ?? languageCode.toUpperCase(),
+      rating: (response['vote_average'] as num?)?.toDouble() ?? 0,
+      overview: response['overview'] as String? ?? '',
+      posterUrl: response['poster_path'] == null
+          ? ''
+          : '${ApiConstants.tmdbImageBaseUrl}${response['poster_path']}',
+      backdropUrl: response['backdrop_path'] == null
+          ? ''
+          : '${ApiConstants.tmdbBackdropBaseUrl}${response['backdrop_path']}',
+      cast: const [],
+      isReleased: _isReleased(releaseDate),
+    );
+  }
+
+  PersonProfile _personProfileFromMap(Map<String, dynamic> response) {
+    return PersonProfile(
+      id: response['id'] as int? ?? 0,
+      name: response['name'] as String? ?? 'Actor',
+      biography: response['biography'] as String? ?? '',
+      profileUrl: response['profile_path'] == null
+          ? ''
+          : '${ApiConstants.tmdbImageBaseUrl}${response['profile_path']}',
+      knownForDepartment: response['known_for_department'] as String? ?? '',
+      birthday: response['birthday'] as String? ?? '',
+      placeOfBirth: response['place_of_birth'] as String? ?? '',
+    );
+  }
+
   Map<String, dynamic> _nestedMap(Map<String, dynamic> source, String key) {
     final value = source[key];
     if (value is Map) return _stringKeyedMap(value);
@@ -255,6 +437,7 @@ class TmdbMovieRepository {
         .take(12)
         .map(
           (item) => CastMember(
+            id: item['id'] as int? ?? 0,
             name: item['name'] as String? ?? 'Unknown',
             character: item['character'] as String? ?? '',
             profileUrl: item['profile_path'] == null
@@ -312,6 +495,20 @@ class TmdbMovieRepository {
     if (hours == 0) return '${remainingMinutes}m';
     if (remainingMinutes == 0) return '${hours}h';
     return '${hours}h ${remainingMinutes}m';
+  }
+
+  int _releaseYear(String releaseDate) {
+    if (releaseDate.length < 4) return DateTime.now().year;
+    return int.tryParse(releaseDate.substring(0, 4)) ?? DateTime.now().year;
+  }
+
+  bool _isReleased(String releaseDate) {
+    if (releaseDate.isEmpty) return true;
+    final parsed = DateTime.tryParse(releaseDate);
+    if (parsed == null) return _releaseYear(releaseDate) <= DateTime.now().year;
+    final today = DateTime.now();
+    final todayDate = DateTime(today.year, today.month, today.day);
+    return !parsed.isAfter(todayDate);
   }
 
   void _ensureCredentials() {
@@ -486,4 +683,17 @@ const _languageCodes = {
   'Tamil': 'ta',
   'Telugu': 'te',
   'Kannada': 'kn',
+};
+
+const _languageNames = {
+  'en': 'English',
+  'hi': 'Hindi',
+  'ml': 'Malayalam',
+  'ta': 'Tamil',
+  'te': 'Telugu',
+  'kn': 'Kannada',
+  'ko': 'Korean',
+  'ja': 'Japanese',
+  'fr': 'French',
+  'es': 'Spanish',
 };

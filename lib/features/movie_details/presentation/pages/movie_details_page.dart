@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -6,7 +7,6 @@ import '../../../../core/widgets/cached_app_image.dart';
 import '../../../movies/domain/entities/movie.dart';
 import '../../../movies/domain/entities/movie_details.dart';
 import '../../../movies/presentation/providers/movie_library_provider.dart';
-import '../../../movies/presentation/widgets/movie_grid.dart';
 import '../../../random_pick/presentation/providers/spin_wheel_provider.dart';
 
 class MovieDetailsPage extends StatefulWidget {
@@ -254,7 +254,7 @@ class _ActionButtons extends StatelessWidget {
           ),
         ),
         OutlinedButton.icon(
-          onPressed: () {},
+          onPressed: () => context.push('/journal/movie/${movie.id}'),
           icon: const Icon(Icons.edit_note),
           label: const Text('Write Journal'),
         ),
@@ -298,34 +298,45 @@ class _CastSection extends StatelessWidget {
                 final member = cast[index];
                 return SizedBox(
                   width: 96,
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      ClipRRect(
-                        borderRadius: BorderRadius.circular(8),
-                        child: CachedAppImage(
-                          imageUrl: member.profileUrl,
-                          width: 96,
-                          height: 96,
-                          placeholderIcon: Icons.person_outline,
+                  child: InkWell(
+                    borderRadius: BorderRadius.circular(8),
+                    onTap: member.id == 0
+                        ? null
+                        : () => context.push(
+                            '/person/${member.id}?name=${Uri.encodeComponent(member.name)}',
+                          ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        ClipRRect(
+                          borderRadius: BorderRadius.circular(8),
+                          child: CachedAppImage(
+                            imageUrl: member.profileUrl,
+                            width: 96,
+                            height: 96,
+                            placeholderIcon: Icons.person_outline,
+                          ),
                         ),
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        member.name,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: Theme.of(context).textTheme.labelLarge,
-                      ),
-                      Text(
-                        member.character,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                        const SizedBox(height: 8),
+                        Text(
+                          member.name,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: Theme.of(context).textTheme.labelLarge,
                         ),
-                      ),
-                    ],
+                        Text(
+                          member.character,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: Theme.of(context).textTheme.bodySmall
+                              ?.copyWith(
+                                color: Theme.of(
+                                  context,
+                                ).colorScheme.onSurfaceVariant,
+                              ),
+                        ),
+                      ],
+                    ),
                   ),
                 );
               },
@@ -392,12 +403,96 @@ class _SuggestionsSection extends StatelessWidget {
         const SizedBox(height: 12),
         if (recommendations.isEmpty)
           const _InlineMessage(message: 'Suggestions are not available yet.')
-        else
+        else ...[
           SizedBox(
-            height: 520,
-            child: MovieGrid(movies: recommendations, enableHero: false),
+            height: 236,
+            child: ListView.separated(
+              scrollDirection: Axis.horizontal,
+              itemCount: recommendations.length,
+              separatorBuilder: (_, _) => const SizedBox(width: 12),
+              itemBuilder: (context, index) {
+                return _SuggestionCard(movie: recommendations[index]);
+              },
+            ),
           ),
+        ],
       ],
+    );
+  }
+}
+
+class _SuggestionCard extends StatelessWidget {
+  const _SuggestionCard({required this.movie});
+
+  final Movie movie;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: 156,
+      child: Card(
+        margin: EdgeInsets.zero,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(8),
+          onTap: () => context.push('/movie/${movie.id}'),
+          child: Padding(
+            padding: const EdgeInsets.all(10),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Expanded(
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(8),
+                    child: CachedAppImage(
+                      imageUrl: movie.posterUrl,
+                      width: double.infinity,
+                      placeholderIcon: Icons.local_movies_outlined,
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 8),
+                Text(
+                  movie.title,
+                  maxLines: 2,
+                  overflow: TextOverflow.ellipsis,
+                  style: Theme.of(
+                    context,
+                  ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w900),
+                ),
+                const SizedBox(height: 4),
+                Row(
+                  children: [
+                    Icon(
+                      Icons.star,
+                      size: 15,
+                      color: Theme.of(context).colorScheme.primary,
+                    ),
+                    const SizedBox(width: 4),
+                    Text(
+                      movie.rating.toStringAsFixed(1),
+                      style: Theme.of(context).textTheme.labelMedium,
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        movie.year.toString(),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: Theme.of(context).textTheme.labelMedium
+                            ?.copyWith(
+                              color: Theme.of(
+                                context,
+                              ).colorScheme.onSurfaceVariant,
+                            ),
+                      ),
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
     );
   }
 }
