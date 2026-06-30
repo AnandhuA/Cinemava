@@ -114,14 +114,18 @@ class _RandomPickPageState extends State<RandomPickPage>
             icon: const Icon(Icons.rotate_right),
             label: const Text('Spin'),
           ),
-          const SizedBox(height: 10),
-          OutlinedButton.icon(
-            onPressed:
-                library.availableMovies.isEmpty || _controller.isAnimating
-                ? null
-                : () => _refreshRandomMovies(library, wheel),
-            icon: const Icon(Icons.shuffle),
-            label: const Text('Random all time'),
+          const SizedBox(height: 14),
+          _WheelSourcePanel(
+            isBusy: _controller.isAnimating,
+            onUseWatchlist: () =>
+                _refreshFromSource('watchlist', library.watchlist, wheel),
+            onUseWatched: () =>
+                _refreshFromSource('watched movies', library.watched, wheel),
+            onUseAll: () => _refreshFromSource(
+              'all movies',
+              library.availableMovies,
+              wheel,
+            ),
           ),
           const SizedBox(height: 10),
           OutlinedButton.icon(
@@ -224,18 +228,19 @@ class _RandomPickPageState extends State<RandomPickPage>
     return ((angle % fullCircle) + fullCircle) % fullCircle;
   }
 
-  void _refreshRandomMovies(
-    MovieLibraryProvider library,
+  void _refreshFromSource(
+    String label,
+    List<Movie> source,
     SpinWheelProvider wheel,
   ) {
-    final movies = wheel.refreshRandomMovies(library.availableMovies);
+    final movies = wheel.refreshRandomMovies(source);
     setState(() => _selectedMovie = null);
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(
           movies.isEmpty
-              ? 'No loaded movies available yet.'
-              : 'Spin wheel refreshed with random movies.',
+              ? 'No released movies found in $label.'
+              : 'Spin wheel loaded from $label.',
         ),
       ),
     );
@@ -309,6 +314,67 @@ class _RandomPickPageState extends State<RandomPickPage>
                 },
               );
       },
+    );
+  }
+}
+
+class _WheelSourcePanel extends StatelessWidget {
+  const _WheelSourcePanel({
+    required this.isBusy,
+    required this.onUseWatchlist,
+    required this.onUseWatched,
+    required this.onUseAll,
+  });
+
+  final bool isBusy;
+  final VoidCallback onUseWatchlist;
+  final VoidCallback onUseWatched;
+  final VoidCallback onUseAll;
+
+  @override
+  Widget build(BuildContext context) {
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: Theme.of(context).cardColor,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: Theme.of(context).dividerColor),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(12),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Build wheel from',
+              style: Theme.of(
+                context,
+              ).textTheme.titleSmall?.copyWith(fontWeight: FontWeight.w900),
+            ),
+            const SizedBox(height: 10),
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                ActionChip(
+                  avatar: const Icon(Icons.bookmark_outline, size: 18),
+                  label: const Text('Watchlist'),
+                  onPressed: isBusy ? null : onUseWatchlist,
+                ),
+                ActionChip(
+                  avatar: const Icon(Icons.check_circle_outline, size: 18),
+                  label: const Text('Watched'),
+                  onPressed: isBusy ? null : onUseWatched,
+                ),
+                ActionChip(
+                  avatar: const Icon(Icons.shuffle, size: 18),
+                  label: const Text('All Movies'),
+                  onPressed: isBusy ? null : onUseAll,
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

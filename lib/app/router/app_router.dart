@@ -1,5 +1,8 @@
 import 'package:go_router/go_router.dart';
 
+import '../../features/anime/domain/entities/anime.dart';
+import '../../features/anime/presentation/pages/anime_details_page.dart';
+import '../../features/anime/presentation/pages/anime_page.dart';
 import '../../features/auth/presentation/pages/login_page.dart';
 import '../../features/discover/presentation/pages/discover_page.dart';
 import '../../features/home/presentation/pages/home_page.dart';
@@ -45,8 +48,8 @@ class AppRouter {
           StatefulShellBranch(
             routes: [
               GoRoute(
-                path: '/discover',
-                builder: (context, state) => const DiscoverPage(),
+                path: '/anime',
+                builder: (context, state) => const AnimePage(),
               ),
             ],
           ),
@@ -75,6 +78,18 @@ class AppRouter {
             ],
           ),
         ],
+      ),
+      GoRoute(
+        path: '/discover',
+        builder: (context, state) => const DiscoverPage(),
+      ),
+      GoRoute(
+        path: '/anime/:id',
+        builder: (context, state) {
+          final anime = state.extra;
+          if (anime is Anime) return AnimeDetailsPage(anime: anime);
+          return const AnimePage();
+        },
       ),
       GoRoute(
         path: '/movie/:id',

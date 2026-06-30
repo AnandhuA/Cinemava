@@ -6,6 +6,8 @@ import 'package:provider/provider.dart';
 import '../app/router/app_router.dart';
 import '../app/theme/app_theme.dart';
 import '../app/theme/theme_provider.dart';
+import '../features/anime/data/repositories/jikan_anime_repository.dart';
+import '../features/anime/presentation/providers/anime_provider.dart';
 import '../features/journal/presentation/providers/journal_provider.dart';
 import '../features/movies/data/repositories/tmdb_movie_repository.dart';
 import '../features/movies/presentation/providers/movie_library_provider.dart';
@@ -41,6 +43,10 @@ class CinemavaApp extends StatelessWidget {
             ),
             Hive.isBoxOpen('movie_library') ? Hive.box('movie_library') : null,
           )..loadInitialMovies(),
+        ),
+        ChangeNotifierProvider(
+          create: (_) =>
+              AnimeProvider(JikanAnimeRepository(_createDio()))..loadTopAnime(),
         ),
         ChangeNotifierProvider(
           create: (_) => JournalProvider(

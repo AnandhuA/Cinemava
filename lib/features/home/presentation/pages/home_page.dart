@@ -53,6 +53,7 @@ class _HomePageState extends State<HomePage> {
             pinned: true,
             title: const Text('Cinemava'),
           ),
+          const SliverToBoxAdapter(child: _HomeSearchBar()),
           if (movieProvider.isLoading)
             const SliverFillRemaining(
               child: Center(child: CircularProgressIndicator()),
@@ -79,6 +80,33 @@ class _HomePageState extends State<HomePage> {
           ],
           const SliverToBoxAdapter(child: SizedBox(height: 24)),
         ],
+      ),
+    );
+  }
+}
+
+class _HomeSearchBar extends StatelessWidget {
+  const _HomeSearchBar();
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 8, 16, 10),
+      child: InkWell(
+        borderRadius: BorderRadius.circular(8),
+        onTap: () => context.push('/discover'),
+        child: IgnorePointer(
+          child: TextField(
+            decoration: InputDecoration(
+              hintText: 'Search movies...',
+              prefixIcon: const Icon(Icons.search),
+              suffixIcon: Icon(
+                Icons.local_movies_outlined,
+                color: Theme.of(context).colorScheme.primary,
+              ),
+            ),
+          ),
+        ),
       ),
     );
   }

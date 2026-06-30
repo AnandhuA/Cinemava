@@ -20,16 +20,16 @@ class _DiscoverPageState extends State<DiscoverPage> {
   String? _selectedLanguage;
 
   @override
+  void initState() {
+    super.initState();
+    _searchController.addListener(_onSearchChanged);
+  }
+
+  @override
   void dispose() {
     _searchController.removeListener(_onSearchChanged);
     _searchController.dispose();
     super.dispose();
-  }
-
-  @override
-  void initState() {
-    super.initState();
-    _searchController.addListener(_onSearchChanged);
   }
 
   void _onSearchChanged() {
