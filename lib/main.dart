@@ -7,5 +7,7 @@ Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
   await Hive.initFlutter();
   await Hive.openBox('user_preferences');
+  await Hive.openBox('tmdb_cache');
+  await Hive.openBox('spin_wheel');
   runApp(const CinemavaApp());
 }

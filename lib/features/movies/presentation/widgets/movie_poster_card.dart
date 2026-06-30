@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 
 import '../../../../core/responsive/responsive.dart';
+import '../../../../core/widgets/cached_app_image.dart';
 import '../../domain/entities/movie.dart';
 
 class MoviePosterCard extends StatelessWidget {
@@ -29,7 +30,7 @@ class MoviePosterCard extends StatelessWidget {
 
         return InkWell(
           borderRadius: BorderRadius.circular(8),
-          onTap: () => context.go('/movie/${movie.id}'),
+          onTap: () => context.push('/movie/${movie.id}'),
           child: SizedBox(
             width: width,
             child: Column(
@@ -87,7 +88,7 @@ class MoviePosterRailCard extends StatelessWidget {
           width: width,
           child: InkWell(
             borderRadius: BorderRadius.circular(8),
-            onTap: () => context.go('/movie/${movie.id}'),
+            onTap: () => context.push('/movie/${movie.id}'),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -141,12 +142,7 @@ class _PosterImage extends StatelessWidget {
         aspectRatio: 2 / 3,
         child: ClipRRect(
           borderRadius: BorderRadius.circular(8),
-          child: movie.posterUrl.isEmpty
-              ? const ColoredBox(
-                  color: Color(0xFF252936),
-                  child: Center(child: Icon(Icons.movie_outlined)),
-                )
-              : Image.network(movie.posterUrl, fit: BoxFit.cover),
+          child: CachedAppImage(imageUrl: movie.posterUrl),
         ),
       ),
     );

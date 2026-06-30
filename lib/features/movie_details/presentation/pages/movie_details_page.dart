@@ -2,10 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 
+import '../../../../core/widgets/cached_app_image.dart';
 import '../../../movies/domain/entities/movie.dart';
 import '../../../movies/domain/entities/movie_details.dart';
 import '../../../movies/presentation/providers/movie_library_provider.dart';
 import '../../../movies/presentation/widgets/movie_grid.dart';
+import '../../../random_pick/presentation/providers/spin_wheel_provider.dart';
 
 class MovieDetailsPage extends StatefulWidget {
   const MovieDetailsPage({super.key, required this.movieId});
@@ -51,10 +53,10 @@ class _MovieDetailsPageState extends State<MovieDetailsPage> {
               background: Stack(
                 fit: StackFit.expand,
                 children: [
-                  if (movie.backdropUrl.isEmpty)
-                    ColoredBox(color: Theme.of(context).cardColor)
-                  else
-                    Image.network(movie.backdropUrl, fit: BoxFit.cover),
+                  CachedAppImage(
+                    imageUrl: movie.backdropUrl,
+                    placeholderIcon: Icons.movie_filter_outlined,
+                  ),
                   DecoratedBox(
                     decoration: BoxDecoration(
                       gradient: LinearGradient(
@@ -134,21 +136,11 @@ class _MovieHeader extends StatelessWidget {
           tag: 'movie-poster-${movie.id}',
           child: ClipRRect(
             borderRadius: BorderRadius.circular(8),
-            child: movie.posterUrl.isEmpty
-                ? const SizedBox(
-                    width: 128,
-                    height: 192,
-                    child: ColoredBox(
-                      color: Color(0xFF252936),
-                      child: Icon(Icons.movie_outlined),
-                    ),
-                  )
-                : Image.network(
-                    movie.posterUrl,
-                    width: 128,
-                    height: 192,
-                    fit: BoxFit.cover,
-                  ),
+            child: CachedAppImage(
+              imageUrl: movie.posterUrl,
+              width: 128,
+              height: 192,
+            ),
           ),
         ),
         const SizedBox(width: 16),
@@ -208,6 +200,7 @@ class _ActionButtons extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final provider = context.watch<MovieLibraryProvider>();
+    final wheel = context.watch<SpinWheelProvider>();
     final trailerUrl = details?.trailerUrl;
 
     return Wrap(
@@ -236,6 +229,28 @@ class _ActionButtons extends StatelessWidget {
           ),
           label: Text(
             provider.isWatched(movie.id) ? 'Watched' : 'Mark Watched',
+          ),
+        ),
+        OutlinedButton.icon(
+          onPressed: wheel.contains(movie.id)
+              ? null
+              : () {
+                  final added = wheel.addPriorityMovie(movie);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(
+                        added
+                            ? 'Added ${movie.title} to the spin wheel.'
+                            : movie.isReleased
+                            ? '${movie.title} is already in the spin wheel.'
+                            : 'Only released movies can be added to the spin wheel.',
+                      ),
+                    ),
+                  );
+                },
+          icon: const Icon(Icons.casino_outlined),
+          label: Text(
+            wheel.contains(movie.id) ? 'In Spin Wheel' : 'Add to Spin',
           ),
         ),
         OutlinedButton.icon(
@@ -288,21 +303,12 @@ class _CastSection extends StatelessWidget {
                     children: [
                       ClipRRect(
                         borderRadius: BorderRadius.circular(8),
-                        child: member.profileUrl.isEmpty
-                            ? const SizedBox(
-                                width: 96,
-                                height: 96,
-                                child: ColoredBox(
-                                  color: Color(0xFF252936),
-                                  child: Icon(Icons.person_outline),
-                                ),
-                              )
-                            : Image.network(
-                                member.profileUrl,
-                                width: 96,
-                                height: 96,
-                                fit: BoxFit.cover,
-                              ),
+                        child: CachedAppImage(
+                          imageUrl: member.profileUrl,
+                          width: 96,
+                          height: 96,
+                          placeholderIcon: Icons.person_outline,
+                        ),
                       ),
                       const SizedBox(height: 8),
                       Text(
@@ -356,11 +362,11 @@ class _StreamingSection extends StatelessWidget {
                   avatar: provider.logoUrl.isEmpty
                       ? const Icon(Icons.live_tv_outlined)
                       : ClipOval(
-                          child: Image.network(
-                            provider.logoUrl,
+                          child: CachedAppImage(
+                            imageUrl: provider.logoUrl,
                             width: 22,
                             height: 22,
-                            fit: BoxFit.cover,
+                            placeholderIcon: Icons.live_tv_outlined,
                           ),
                         ),
                   label: Text(provider.name),
@@ -387,7 +393,10 @@ class _SuggestionsSection extends StatelessWidget {
         if (recommendations.isEmpty)
           const _InlineMessage(message: 'Suggestions are not available yet.')
         else
-          SizedBox(height: 520, child: MovieGrid(movies: recommendations)),
+          SizedBox(
+            height: 520,
+            child: MovieGrid(movies: recommendations, enableHero: false),
+          ),
       ],
     );
   }

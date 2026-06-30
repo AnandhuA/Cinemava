@@ -4,9 +4,14 @@ import '../../features/auth/presentation/pages/login_page.dart';
 import '../../features/discover/presentation/pages/discover_page.dart';
 import '../../features/home/presentation/pages/home_page.dart';
 import '../../features/journal/presentation/pages/journal_page.dart';
+import '../../features/marathon/data/marathon_data.dart';
+import '../../features/marathon/presentation/pages/marathon_details_page.dart';
+import '../../features/marathon/presentation/pages/marathon_page.dart';
 import '../../features/movie_details/presentation/pages/movie_details_page.dart';
 import '../../features/onboarding/presentation/pages/onboarding_page.dart';
 import '../../features/profile/presentation/pages/profile_page.dart';
+import '../../features/profile/presentation/pages/preference_settings_page.dart';
+import '../../features/random_pick/presentation/pages/random_pick_page.dart';
 import '../../features/settings/presentation/pages/settings_page.dart';
 import '../../features/shell/presentation/pages/app_shell.dart';
 import '../../features/splash/presentation/pages/splash_page.dart';
@@ -46,16 +51,16 @@ class AppRouter {
           StatefulShellBranch(
             routes: [
               GoRoute(
-                path: '/watchlist',
-                builder: (context, state) => const WatchlistPage(),
+                path: '/marathons',
+                builder: (context, state) => const MarathonPage(),
               ),
             ],
           ),
           StatefulShellBranch(
             routes: [
               GoRoute(
-                path: '/journal',
-                builder: (context, state) => const JournalPage(),
+                path: '/pick',
+                builder: (context, state) => const RandomPickPage(),
               ),
             ],
           ),
@@ -75,6 +80,21 @@ class AppRouter {
             MovieDetailsPage(movieId: int.parse(state.pathParameters['id']!)),
       ),
       GoRoute(
+        path: '/journal',
+        builder: (context, state) => const JournalPage(),
+      ),
+      GoRoute(
+        path: '/watchlist',
+        builder: (context, state) => const WatchlistPage(),
+      ),
+      GoRoute(
+        path: '/marathon/:id',
+        builder: (context, state) {
+          final marathon = marathonById(state.pathParameters['id']!);
+          return MarathonDetailsPage(marathon: marathon);
+        },
+      ),
+      GoRoute(
         path: '/watched',
         builder: (context, state) => const WatchedPage(),
       ),
@@ -85,6 +105,10 @@ class AppRouter {
       GoRoute(
         path: '/settings',
         builder: (context, state) => const SettingsPage(),
+      ),
+      GoRoute(
+        path: '/preferences',
+        builder: (context, state) => const PreferenceSettingsPage(),
       ),
     ],
   );

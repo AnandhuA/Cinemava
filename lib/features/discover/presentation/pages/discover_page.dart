@@ -30,16 +30,22 @@ class DiscoverPage extends StatelessWidget {
           else
             const SizedBox(height: 2),
           Expanded(
-            child: provider.errorMessage != null && provider.movies.isEmpty
+            child:
+                provider.searchErrorMessage != null &&
+                    provider.searchResults.isEmpty
                 ? Center(
                     child: Padding(
                       padding: const EdgeInsets.all(24),
                       child: Text(
-                        provider.errorMessage!,
+                        provider.searchErrorMessage!,
                         textAlign: TextAlign.center,
                       ),
                     ),
                   )
+                : provider.query.trim().isNotEmpty &&
+                      provider.searchResults.isEmpty &&
+                      !provider.isSearching
+                ? const Center(child: Text('No matching movies found.'))
                 : MovieGrid(movies: provider.searchResults),
           ),
         ],

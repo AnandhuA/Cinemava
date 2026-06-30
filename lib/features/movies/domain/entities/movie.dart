@@ -11,6 +11,7 @@ class Movie {
     required this.posterUrl,
     required this.backdropUrl,
     required this.cast,
+    required this.isReleased,
   });
 
   final int id;
@@ -24,4 +25,5 @@ class Movie {
   final String posterUrl;
   final String backdropUrl;
   final List<String> cast;
+  final bool isReleased;
 }

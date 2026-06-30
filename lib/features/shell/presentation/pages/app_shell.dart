@@ -20,14 +20,14 @@ class AppShell extends StatelessWidget {
         label: 'Discover',
       ),
       NavigationDestination(
-        icon: Icon(Icons.bookmark_border),
-        selectedIcon: Icon(Icons.bookmark),
-        label: 'Watchlist',
+        icon: Icon(Icons.local_movies_outlined),
+        selectedIcon: Icon(Icons.local_movies),
+        label: 'Marathon',
       ),
       NavigationDestination(
-        icon: Icon(Icons.edit_note_outlined),
-        selectedIcon: Icon(Icons.edit_note),
-        label: 'Journal',
+        icon: Icon(Icons.casino_outlined),
+        selectedIcon: Icon(Icons.casino),
+        label: 'Pick',
       ),
       NavigationDestination(
         icon: Icon(Icons.person_outline),
@@ -37,7 +37,7 @@ class AppShell extends StatelessWidget {
     ];
 
     return Scaffold(
-      body: navigationShell,
+      body: HeroMode(enabled: false, child: navigationShell),
       bottomNavigationBar: NavigationBar(
         backgroundColor: Colors.transparent,
         selectedIndex: navigationShell.currentIndex,
