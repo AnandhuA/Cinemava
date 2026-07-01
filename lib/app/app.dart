@@ -45,8 +45,10 @@ class CinemavaApp extends StatelessWidget {
           )..loadInitialMovies(),
         ),
         ChangeNotifierProvider(
-          create: (_) =>
-              AnimeProvider(JikanAnimeRepository(_createDio()))..loadTopAnime(),
+          create: (_) => AnimeProvider(
+            JikanAnimeRepository(_createDio()),
+            Hive.isBoxOpen('anime_library') ? Hive.box('anime_library') : null,
+          )..loadTopAnime(),
         ),
         ChangeNotifierProvider(
           create: (_) => JournalProvider(

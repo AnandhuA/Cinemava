@@ -4,6 +4,8 @@ import 'package:provider/provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../../../core/widgets/cached_app_image.dart';
+import '../../../movies/domain/entities/movie.dart';
+import '../../../random_pick/presentation/providers/spin_wheel_provider.dart';
 import '../../domain/entities/anime.dart';
 import '../../domain/entities/anime_details.dart';
 import '../providers/anime_provider.dart';
@@ -72,7 +74,7 @@ class _AnimeDetailsPageState extends State<AnimeDetailsPage> {
                 children: [
                   _AnimeHeader(anime: anime, details: details),
                   const SizedBox(height: 18),
-                  _ActionRow(details: details),
+                  _ActionRow(anime: anime, details: details),
                   if (provider.loadingDetailsAnimeId == anime.id) ...[
                     const SizedBox(height: 18),
                     const LinearProgressIndicator(minHeight: 2),
@@ -192,17 +194,66 @@ class _AnimeHeader extends StatelessWidget {
 }
 
 class _ActionRow extends StatelessWidget {
-  const _ActionRow({required this.details});
+  const _ActionRow({required this.anime, required this.details});
 
+  final Anime anime;
   final AnimeDetails? details;
 
   @override
   Widget build(BuildContext context) {
     final trailerUrl = details?.trailerUrl;
+    final provider = context.watch<AnimeProvider>();
+    final wheel = context.watch<SpinWheelProvider>();
+    final spinMovie = _animeToSpinMovie(anime);
     return Wrap(
       spacing: 10,
       runSpacing: 10,
       children: [
+        FilledButton.icon(
+          onPressed: () => provider.toggleWishlist(anime),
+          icon: Icon(
+            provider.isInWishlist(anime.id)
+                ? Icons.bookmark
+                : Icons.bookmark_border,
+          ),
+          label: Text(
+            provider.isInWishlist(anime.id) ? 'In Wishlist' : 'Add to Wishlist',
+          ),
+        ),
+        OutlinedButton.icon(
+          onPressed: () => provider.toggleWatched(anime),
+          icon: Icon(
+            provider.isWatched(anime.id)
+                ? Icons.check_circle
+                : Icons.check_circle_outline,
+          ),
+          label: Text(
+            provider.isWatched(anime.id) ? 'Watched' : 'Mark Watched',
+          ),
+        ),
+        OutlinedButton.icon(
+          onPressed: wheel.contains(spinMovie.id)
+              ? null
+              : () {
+                  final added = wheel.addPriorityMovie(spinMovie);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(
+                        added
+                            ? 'Added ${anime.title} to the spin wheel.'
+                            : '${anime.title} is already in the spin wheel.',
+                      ),
+                    ),
+                  );
+                },
+          icon: const Icon(Icons.casino_outlined),
+          label: Text(wheel.contains(spinMovie.id) ? 'In Spin' : 'Add to Spin'),
+        ),
+        OutlinedButton.icon(
+          onPressed: () => context.push('/journal/movie/${-anime.id}'),
+          icon: const Icon(Icons.edit_note),
+          label: const Text('Write Journal'),
+        ),
         FilledButton.icon(
           onPressed: trailerUrl == null
               ? null
@@ -224,6 +275,23 @@ class _ActionRow extends StatelessWidget {
           label: const Text('Stream'),
         ),
       ],
+    );
+  }
+
+  Movie _animeToSpinMovie(Anime anime) {
+    return Movie(
+      id: -anime.id,
+      title: anime.title,
+      year: anime.year ?? DateTime.now().year,
+      runtime: anime.episodes == null ? anime.type : '${anime.episodes} eps',
+      genres: anime.genres,
+      language: 'Anime',
+      rating: anime.score,
+      overview: anime.synopsis,
+      posterUrl: anime.imageUrl,
+      backdropUrl: anime.imageUrl,
+      cast: const [],
+      isReleased: true,
     );
   }
 }

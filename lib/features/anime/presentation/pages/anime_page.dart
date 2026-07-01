@@ -72,6 +72,10 @@ class _AnimePageState extends State<AnimePage> {
                       ),
                     ),
                     const SizedBox(height: 18),
+                    if (query.isEmpty) ...[
+                      _AnimeSummary(provider: provider),
+                      const SizedBox(height: 18),
+                    ],
                     Text(
                       query.isEmpty ? 'Popular anime' : 'Results for "$query"',
                       style: Theme.of(context).textTheme.titleLarge?.copyWith(
@@ -134,6 +138,7 @@ class _AnimeCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final provider = context.watch<AnimeProvider>();
     return Card(
       child: InkWell(
         onTap: () => context.push('/anime/${anime.id}', extra: anime),
@@ -203,12 +208,137 @@ class _AnimeCard extends StatelessWidget {
                         style: Theme.of(context).textTheme.bodySmall,
                       ),
                     ],
+                    const SizedBox(height: 8),
+                    Wrap(
+                      spacing: 8,
+                      runSpacing: 8,
+                      children: [
+                        ActionChip(
+                          avatar: Icon(
+                            provider.isInWishlist(anime.id)
+                                ? Icons.bookmark
+                                : Icons.bookmark_border,
+                            size: 18,
+                          ),
+                          label: Text(
+                            provider.isInWishlist(anime.id)
+                                ? 'Wishlisted'
+                                : 'Wishlist',
+                          ),
+                          onPressed: () => context
+                              .read<AnimeProvider>()
+                              .toggleWishlist(anime),
+                        ),
+                        ActionChip(
+                          avatar: Icon(
+                            provider.isWatched(anime.id)
+                                ? Icons.check_circle
+                                : Icons.check_circle_outline,
+                            size: 18,
+                          ),
+                          label: Text(
+                            provider.isWatched(anime.id)
+                                ? 'Watched'
+                                : 'Watched',
+                          ),
+                          onPressed: () => context
+                              .read<AnimeProvider>()
+                              .toggleWatched(anime),
+                        ),
+                      ],
+                    ),
                   ],
                 ),
               ),
             ],
           ),
         ),
+      ),
+    );
+  }
+}
+
+class _AnimeSummary extends StatelessWidget {
+  const _AnimeSummary({required this.provider});
+
+  final AnimeProvider provider;
+
+  @override
+  Widget build(BuildContext context) {
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: Theme.of(context).cardColor,
+        borderRadius: BorderRadius.circular(8),
+        border: Border.all(color: Theme.of(context).dividerColor),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(14),
+        child: Row(
+          children: [
+            _SummaryMetric(
+              icon: Icons.auto_awesome,
+              label: 'Popular',
+              value: provider.topAnime.length.toString(),
+            ),
+            const SizedBox(width: 10),
+            _SummaryMetric(
+              icon: Icons.bookmark,
+              label: 'Wishlist',
+              value: provider.wishlistIds.length.toString(),
+            ),
+            const SizedBox(width: 10),
+            _SummaryMetric(
+              icon: Icons.check_circle,
+              label: 'Watched',
+              value: provider.watchedIds.length.toString(),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _SummaryMetric extends StatelessWidget {
+  const _SummaryMetric({
+    required this.icon,
+    required this.label,
+    required this.value,
+  });
+
+  final IconData icon;
+  final String label;
+  final String value;
+
+  @override
+  Widget build(BuildContext context) {
+    return Expanded(
+      child: Row(
+        children: [
+          Icon(icon, color: Theme.of(context).colorScheme.primary),
+          const SizedBox(width: 8),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  value,
+                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+                Text(
+                  label,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                    color: Theme.of(context).colorScheme.onSurfaceVariant,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }

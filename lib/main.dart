@@ -9,6 +9,7 @@ Future<void> main() async {
   await Hive.openBox('user_preferences');
   await Hive.openBox('tmdb_cache');
   await Hive.openBox('movie_library');
+  await Hive.openBox('anime_library');
   await Hive.openBox('spin_wheel');
   await Hive.openBox('journal');
   runApp(const CinemavaApp());

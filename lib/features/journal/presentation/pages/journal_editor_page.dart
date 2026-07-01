@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
 import '../../../../core/widgets/cached_app_image.dart';
+import '../../../anime/presentation/providers/anime_provider.dart';
 import '../../../movies/presentation/providers/movie_library_provider.dart';
 import '../providers/journal_provider.dart';
 
@@ -48,19 +49,40 @@ class _JournalEditorPageState extends State<JournalEditorPage> {
 
   @override
   Widget build(BuildContext context) {
-    final movie = context.watch<MovieLibraryProvider>().movieById(
-      widget.movieId,
-    );
+    final isAnime = widget.movieId < 0;
+    final movie = isAnime
+        ? null
+        : context.watch<MovieLibraryProvider>().movieById(widget.movieId);
+    final anime = isAnime
+        ? context.watch<AnimeProvider>().animeById(-widget.movieId)
+        : null;
     final entry = context.watch<JournalProvider>().entryForMovie(
       widget.movieId,
     );
 
-    if (movie == null) {
+    if (movie == null && anime == null) {
       return Scaffold(
         appBar: AppBar(title: const Text('Journal')),
-        body: const Center(child: Text('Movie not found.')),
+        body: Center(
+          child: Text(isAnime ? 'Anime not found.' : 'Movie not found.'),
+        ),
       );
     }
+
+    final title = movie?.title ?? anime!.title;
+    final imageUrl = movie?.posterUrl ?? anime!.imageUrl;
+    final meta = movie == null
+        ? [
+            anime!.type,
+            if (anime.year != null) anime.year.toString(),
+          ].where((value) => value.isNotEmpty).join(' • ')
+        : '${movie.year} • ${movie.language}';
+    final placeholderIcon = movie == null
+        ? Icons.auto_awesome_outlined
+        : Icons.local_movies_outlined;
+    final noteHint = movie == null
+        ? 'What did you think about this anime?'
+        : 'What did you think about this movie?';
 
     return Scaffold(
       appBar: AppBar(
@@ -83,10 +105,10 @@ class _JournalEditorPageState extends State<JournalEditorPage> {
               ClipRRect(
                 borderRadius: BorderRadius.circular(8),
                 child: CachedAppImage(
-                  imageUrl: movie.posterUrl,
+                  imageUrl: imageUrl,
                   width: 92,
                   height: 138,
-                  placeholderIcon: Icons.local_movies_outlined,
+                  placeholderIcon: placeholderIcon,
                 ),
               ),
               const SizedBox(width: 14),
@@ -95,13 +117,13 @@ class _JournalEditorPageState extends State<JournalEditorPage> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text(
-                      movie.title,
+                      title,
                       style: Theme.of(context).textTheme.titleLarge?.copyWith(
                         fontWeight: FontWeight.w900,
                       ),
                     ),
                     const SizedBox(height: 6),
-                    Text('${movie.year} • ${movie.language}'),
+                    Text(meta.isEmpty ? 'Anime' : meta),
                     const SizedBox(height: 10),
                     OutlinedButton.icon(
                       onPressed: _pickWatchedDate,
@@ -151,10 +173,9 @@ class _JournalEditorPageState extends State<JournalEditorPage> {
             textCapitalization: TextCapitalization.sentences,
             decoration: const InputDecoration(
               labelText: 'Review notes',
-              hintText: 'What did you think about this movie?',
               alignLabelWithHint: true,
               border: OutlineInputBorder(),
-            ),
+            ).copyWith(hintText: noteHint),
           ),
           const SizedBox(height: 20),
           FilledButton.icon(
@@ -179,19 +200,27 @@ class _JournalEditorPageState extends State<JournalEditorPage> {
   }
 
   void _save() {
-    final movie = context.read<MovieLibraryProvider>().movieById(
-      widget.movieId,
-    );
-    if (movie == null) return;
+    final isAnime = widget.movieId < 0;
+    final movie = isAnime
+        ? null
+        : context.read<MovieLibraryProvider>().movieById(widget.movieId);
+    final anime = isAnime
+        ? context.read<AnimeProvider>().animeById(-widget.movieId)
+        : null;
+    if (movie == null && anime == null) return;
 
     context.read<JournalProvider>().saveEntry(
-      movieId: movie.id,
-      movieTitle: movie.title,
+      movieId: widget.movieId,
+      movieTitle: movie?.title ?? anime!.title,
       note: _noteController.text,
       rating: _rating,
       watchedAt: _watchedAt,
     );
-    context.read<MovieLibraryProvider>().markWatched(movie.id);
+    if (movie != null) {
+      context.read<MovieLibraryProvider>().markWatched(movie.id);
+    } else {
+      context.read<AnimeProvider>().markWatched(anime!);
+    }
     context.pop();
   }
 

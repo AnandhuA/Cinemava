@@ -7,6 +7,7 @@ import 'package:go_router/go_router.dart';
 import 'package:provider/provider.dart';
 
 import '../../../../core/widgets/cached_app_image.dart';
+import '../../../anime/domain/entities/anime.dart';
 import '../../../movies/domain/entities/movie.dart';
 import '../../../movies/presentation/providers/movie_library_provider.dart';
 import '../providers/spin_wheel_provider.dart';
@@ -477,7 +478,24 @@ class _PickedMovieCard extends StatelessWidget {
     return Card(
       child: InkWell(
         borderRadius: BorderRadius.circular(8),
-        onTap: () => context.push('/movie/${movie.id}'),
+        onTap: () {
+          if (movie.id < 0) {
+            final anime = Anime(
+              id: -movie.id,
+              title: movie.title,
+              imageUrl: movie.posterUrl,
+              score: movie.rating,
+              year: movie.year,
+              type: movie.runtime,
+              episodes: null,
+              synopsis: movie.overview,
+              genres: movie.genres,
+            );
+            context.push('/anime/${anime.id}', extra: anime);
+            return;
+          }
+          context.push('/movie/${movie.id}');
+        },
         child: Padding(
           padding: const EdgeInsets.all(14),
           child: Row(
