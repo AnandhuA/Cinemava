@@ -6,6 +6,7 @@ class MarathonCollection {
     required this.description,
     required this.accentColor,
     required this.collectionQueries,
+    this.isUserCreated = false,
   });
 
   final String id;
@@ -14,6 +15,7 @@ class MarathonCollection {
   final String description;
   final int accentColor;
   final List<String> collectionQueries;
+  final bool isUserCreated;
 }
 
 const marathonCollections = [

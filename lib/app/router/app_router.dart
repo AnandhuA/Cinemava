@@ -1,4 +1,5 @@
 import 'package:go_router/go_router.dart';
+import 'package:provider/provider.dart';
 
 import '../../features/anime/domain/entities/anime.dart';
 import '../../features/anime/presentation/pages/anime_details_page.dart';
@@ -10,7 +11,9 @@ import '../../features/journal/presentation/pages/journal_editor_page.dart';
 import '../../features/journal/presentation/pages/journal_page.dart';
 import '../../features/marathon/data/marathon_data.dart';
 import '../../features/marathon/presentation/pages/marathon_details_page.dart';
+import '../../features/marathon/presentation/pages/marathon_editor_page.dart';
 import '../../features/marathon/presentation/pages/marathon_page.dart';
+import '../../features/marathon/presentation/providers/marathon_provider.dart';
 import '../../features/movie_details/presentation/pages/movie_details_page.dart';
 import '../../features/onboarding/presentation/pages/onboarding_page.dart';
 import '../../features/people/presentation/pages/person_movies_page.dart';
@@ -117,9 +120,30 @@ class AppRouter {
         builder: (context, state) => const WatchlistPage(),
       ),
       GoRoute(
+        path: '/marathon/new',
+        builder: (context, state) => const MarathonEditorPage(),
+      ),
+      GoRoute(
+        path: '/marathon/:id/edit',
+        builder: (context, state) {
+          final extra = state.extra;
+          final marathon = extra is MarathonCollection
+              ? extra
+              : context.read<MarathonProvider>().marathonById(
+                  state.pathParameters['id']!,
+                );
+          return MarathonEditorPage(marathon: marathon);
+        },
+      ),
+      GoRoute(
         path: '/marathon/:id',
         builder: (context, state) {
-          final marathon = marathonById(state.pathParameters['id']!);
+          final extra = state.extra;
+          final marathon = extra is MarathonCollection
+              ? extra
+              : context.read<MarathonProvider>().marathonById(
+                  state.pathParameters['id']!,
+                );
           return MarathonDetailsPage(marathon: marathon);
         },
       ),

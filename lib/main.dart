@@ -12,5 +12,6 @@ Future<void> main() async {
   await Hive.openBox('anime_library');
   await Hive.openBox('spin_wheel');
   await Hive.openBox('journal');
+  await Hive.openBox('marathons');
   runApp(const CinemavaApp());
 }

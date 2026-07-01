@@ -4,6 +4,7 @@ import 'package:go_router/go_router.dart';
 import '../../../../core/responsive/responsive.dart';
 import '../../../../core/widgets/cached_app_image.dart';
 import '../../domain/entities/movie.dart';
+import 'movie_status_badges.dart';
 
 class MoviePosterCard extends StatelessWidget {
   const MoviePosterCard({
@@ -142,7 +143,18 @@ class _PosterImage extends StatelessWidget {
         aspectRatio: 2 / 3,
         child: ClipRRect(
           borderRadius: BorderRadius.circular(8),
-          child: CachedAppImage(imageUrl: movie.posterUrl),
+          child: Stack(
+            fit: StackFit.expand,
+            children: [
+              CachedAppImage(imageUrl: movie.posterUrl),
+              Positioned(
+                top: 0,
+                left: 0,
+                right: 0,
+                child: MovieStatusBadges(movieId: movie.id, dense: true),
+              ),
+            ],
+          ),
         ),
       ),
     );

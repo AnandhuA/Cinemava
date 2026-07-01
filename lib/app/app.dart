@@ -9,6 +9,7 @@ import '../app/theme/theme_provider.dart';
 import '../features/anime/data/repositories/jikan_anime_repository.dart';
 import '../features/anime/presentation/providers/anime_provider.dart';
 import '../features/journal/presentation/providers/journal_provider.dart';
+import '../features/marathon/presentation/providers/marathon_provider.dart';
 import '../features/movies/data/repositories/tmdb_movie_repository.dart';
 import '../features/movies/presentation/providers/movie_library_provider.dart';
 import '../features/onboarding/presentation/providers/user_preference_provider.dart';
@@ -53,6 +54,11 @@ class CinemavaApp extends StatelessWidget {
         ChangeNotifierProvider(
           create: (_) => JournalProvider(
             Hive.isBoxOpen('journal') ? Hive.box('journal') : null,
+          ),
+        ),
+        ChangeNotifierProvider(
+          create: (_) => MarathonProvider(
+            Hive.isBoxOpen('marathons') ? Hive.box('marathons') : null,
           ),
         ),
         ChangeNotifierProvider(

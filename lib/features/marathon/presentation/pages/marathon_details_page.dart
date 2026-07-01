@@ -6,6 +6,7 @@ import '../../../../core/widgets/cached_app_image.dart';
 import '../../../movies/domain/entities/movie.dart';
 import '../../../movies/presentation/providers/movie_library_provider.dart';
 import '../../data/marathon_data.dart';
+import '../providers/marathon_provider.dart';
 
 class MarathonDetailsPage extends StatefulWidget {
   const MarathonDetailsPage({super.key, required this.marathon});
@@ -32,7 +33,7 @@ class _MarathonDetailsPageState extends State<MarathonDetailsPage> {
   }
 
   void _load({bool force = false}) {
-    final marathon = widget.marathon;
+    final marathon = _currentMarathon(context, listen: false);
     if (!mounted || marathon == null) return;
     context.read<MovieLibraryProvider>().loadMarathonMovies(
       id: marathon.id,
@@ -43,7 +44,7 @@ class _MarathonDetailsPageState extends State<MarathonDetailsPage> {
 
   @override
   Widget build(BuildContext context) {
-    final marathon = widget.marathon;
+    final marathon = _currentMarathon(context);
     if (marathon == null) {
       return Scaffold(
         appBar: AppBar(title: const Text('Release order')),
@@ -55,16 +56,46 @@ class _MarathonDetailsPageState extends State<MarathonDetailsPage> {
     final movies = provider.moviesForMarathon(marathon.id);
     final isLoading = provider.isLoadingMarathon(marathon.id);
     final error = provider.marathonError(marathon.id);
+    final watchedCount = movies
+        .where((movie) => provider.isWatched(movie.id))
+        .length;
 
     return Scaffold(
-      appBar: AppBar(title: Text(marathon.title)),
+      appBar: AppBar(
+        title: Text(marathon.title),
+        actions: [
+          if (marathon.isUserCreated)
+            IconButton(
+              tooltip: 'Edit marathon',
+              onPressed: () async {
+                await context.push(
+                  '/marathon/${marathon.id}/edit',
+                  extra: marathon,
+                );
+                if (!context.mounted) return;
+                _load(force: true);
+              },
+              icon: const Icon(Icons.edit_outlined),
+            ),
+          if (marathon.isUserCreated)
+            IconButton(
+              tooltip: 'Delete marathon',
+              onPressed: () => _deleteMarathon(context, marathon),
+              icon: const Icon(Icons.delete_outline),
+            ),
+        ],
+      ),
       body: ListView(
         padding: const EdgeInsets.all(16),
         children: [
           _MarathonHeader(
             marathon: marathon,
             movieCount: movies.length,
+            watchedCount: watchedCount,
             isLoading: isLoading,
+            onStart: movies.isEmpty
+                ? null
+                : () => _startMarathon(context, movies),
           ),
           const SizedBox(height: 20),
           Text(
@@ -93,10 +124,64 @@ class _MarathonDetailsPageState extends State<MarathonDetailsPage> {
                 movie: movies[index],
                 accentColor: Color(marathon.accentColor),
                 isLast: index == movies.length - 1,
+                isWatched: provider.isWatched(movies[index].id),
               ),
         ],
       ),
     );
+  }
+
+  Future<void> _startMarathon(BuildContext context, List<Movie> movies) async {
+    final provider = context.read<MovieLibraryProvider>();
+    final firstUnwatched = movies.cast<Movie?>().firstWhere(
+      (movie) => movie != null && !provider.isWatched(movie.id),
+      orElse: () => movies.first,
+    );
+    if (firstUnwatched == null) return;
+
+    final readyMovie = await provider.ensureMovie(firstUnwatched);
+    if (!context.mounted) return;
+    context.push('/movie/${readyMovie.id}');
+  }
+
+  MarathonCollection? _currentMarathon(
+    BuildContext context, {
+    bool listen = true,
+  }) {
+    final marathon = widget.marathon;
+    if (marathon == null || !marathon.isUserCreated) return marathon;
+    final provider = listen
+        ? context.watch<MarathonProvider>()
+        : context.read<MarathonProvider>();
+    return provider.marathonById(marathon.id) ?? marathon;
+  }
+
+  Future<void> _deleteMarathon(
+    BuildContext context,
+    MarathonCollection marathon,
+  ) async {
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (context) {
+        return AlertDialog(
+          title: const Text('Delete marathon?'),
+          content: Text('${marathon.title} will be removed from your list.'),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(false),
+              child: const Text('Cancel'),
+            ),
+            FilledButton(
+              onPressed: () => Navigator.of(context).pop(true),
+              child: const Text('Delete'),
+            ),
+          ],
+        );
+      },
+    );
+    if (confirmed != true || !context.mounted) return;
+    context.read<MarathonProvider>().deleteMarathon(marathon.id);
+    context.pop();
   }
 }
 
@@ -104,15 +189,23 @@ class _MarathonHeader extends StatelessWidget {
   const _MarathonHeader({
     required this.marathon,
     required this.movieCount,
+    required this.watchedCount,
     required this.isLoading,
+    required this.onStart,
   });
 
   final MarathonCollection marathon;
   final int movieCount;
+  final int watchedCount;
   final bool isLoading;
+  final VoidCallback? onStart;
 
   @override
   Widget build(BuildContext context) {
+    final progress = movieCount == 0 ? 0.0 : watchedCount / movieCount;
+    final percentage = (progress * 100).round();
+    final isComplete = movieCount > 0 && watchedCount == movieCount;
+
     return DecoratedBox(
       decoration: BoxDecoration(
         color: Color(marathon.accentColor).withValues(alpha: 0.16),
@@ -140,6 +233,60 @@ class _MarathonHeader extends StatelessWidget {
                 context,
               ).textTheme.bodyLarge?.copyWith(height: 1.4),
             ),
+            if (movieCount > 0) ...[
+              const SizedBox(height: 16),
+              Row(
+                children: [
+                  Expanded(
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(999),
+                      child: LinearProgressIndicator(
+                        minHeight: 10,
+                        value: progress,
+                        backgroundColor: Color(
+                          marathon.accentColor,
+                        ).withValues(alpha: 0.16),
+                        color: Color(marathon.accentColor),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Text(
+                    '$percentage%',
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.w900,
+                      color: Color(marathon.accentColor),
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              Text(
+                '$watchedCount of $movieCount watched',
+                style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                  color: Theme.of(context).colorScheme.onSurfaceVariant,
+                ),
+              ),
+              const SizedBox(height: 14),
+              SizedBox(
+                width: double.infinity,
+                child: FilledButton.icon(
+                  onPressed: onStart,
+                  icon: Icon(
+                    isComplete
+                        ? Icons.replay_outlined
+                        : Icons.play_arrow_rounded,
+                  ),
+                  label: Text(
+                    isComplete
+                        ? 'Restart marathon'
+                        : watchedCount == 0
+                        ? 'Start marathon'
+                        : 'Continue marathon',
+                  ),
+                ),
+              ),
+            ],
             const SizedBox(height: 12),
             Wrap(
               spacing: 8,
@@ -213,12 +360,14 @@ class _WatchOrderTile extends StatelessWidget {
     required this.movie,
     required this.accentColor,
     required this.isLast,
+    required this.isWatched,
   });
 
   final int index;
   final Movie movie;
   final Color accentColor;
   final bool isLast;
+  final bool isWatched;
 
   @override
   Widget build(BuildContext context) {
@@ -230,14 +379,16 @@ class _WatchOrderTile extends StatelessWidget {
             children: [
               CircleAvatar(
                 radius: 18,
-                backgroundColor: accentColor,
-                child: Text(
-                  '$index',
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.w900,
-                  ),
-                ),
+                backgroundColor: isWatched ? Colors.green : accentColor,
+                child: isWatched
+                    ? const Icon(Icons.check, color: Colors.white, size: 20)
+                    : Text(
+                        '$index',
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.w900,
+                        ),
+                      ),
               ),
               if (!isLast)
                 Expanded(
@@ -314,9 +465,23 @@ class _WatchOrderTile extends StatelessWidget {
                             ],
                           ),
                         ),
-                        Icon(
-                          Icons.chevron_right,
-                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                        IconButton(
+                          tooltip: isWatched
+                              ? 'Mark not watched'
+                              : 'Mark watched',
+                          onPressed: () => context
+                              .read<MovieLibraryProvider>()
+                              .toggleWatched(movie.id),
+                          icon: Icon(
+                            isWatched
+                                ? Icons.check_circle
+                                : Icons.check_circle_outline,
+                            color: isWatched
+                                ? Colors.green
+                                : Theme.of(
+                                    context,
+                                  ).colorScheme.onSurfaceVariant,
+                          ),
                         ),
                       ],
                     ),

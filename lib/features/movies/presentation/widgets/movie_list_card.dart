@@ -3,6 +3,7 @@ import 'package:go_router/go_router.dart';
 
 import '../../../../core/widgets/cached_app_image.dart';
 import '../../domain/entities/movie.dart';
+import 'movie_status_badges.dart';
 
 class MovieListCard extends StatelessWidget {
   const MovieListCard({
@@ -28,13 +29,31 @@ class MovieListCard extends StatelessWidget {
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              ClipRRect(
-                borderRadius: BorderRadius.circular(8),
-                child: CachedAppImage(
-                  imageUrl: movie.posterUrl,
-                  width: 76,
-                  height: 114,
-                  placeholderIcon: Icons.local_movies_outlined,
+              SizedBox(
+                width: 76,
+                height: 114,
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(8),
+                  child: Stack(
+                    fit: StackFit.expand,
+                    children: [
+                      CachedAppImage(
+                        imageUrl: movie.posterUrl,
+                        width: 76,
+                        height: 114,
+                        placeholderIcon: Icons.local_movies_outlined,
+                      ),
+                      Positioned(
+                        top: 0,
+                        left: 0,
+                        right: 0,
+                        child: MovieStatusBadges(
+                          movieId: movie.id,
+                          dense: true,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
               const SizedBox(width: 12),
