@@ -5,6 +5,7 @@ import 'package:provider/provider.dart';
 import '../../../../core/widgets/cached_app_image.dart';
 import '../../domain/entities/anime.dart';
 import '../providers/anime_provider.dart';
+import '../widgets/anime_status_badges.dart';
 
 class AnimePage extends StatefulWidget {
   const AnimePage({super.key});
@@ -148,13 +149,31 @@ class _AnimeCard extends StatelessWidget {
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              ClipRRect(
-                borderRadius: BorderRadius.circular(8),
-                child: CachedAppImage(
-                  imageUrl: anime.imageUrl,
-                  width: 92,
-                  height: 132,
-                  placeholderIcon: Icons.auto_awesome_outlined,
+              SizedBox(
+                width: 92,
+                height: 132,
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(8),
+                  child: Stack(
+                    fit: StackFit.expand,
+                    children: [
+                      CachedAppImage(
+                        imageUrl: anime.imageUrl,
+                        width: 92,
+                        height: 132,
+                        placeholderIcon: Icons.auto_awesome_outlined,
+                      ),
+                      Positioned(
+                        top: 0,
+                        left: 0,
+                        right: 0,
+                        child: AnimeStatusBadges(
+                          animeId: anime.id,
+                          dense: true,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
               const SizedBox(width: 14),

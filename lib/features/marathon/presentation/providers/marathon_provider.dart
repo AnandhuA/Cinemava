@@ -2,6 +2,7 @@ import 'package:flutter/foundation.dart';
 import 'package:hive/hive.dart';
 
 import '../../data/marathon_data.dart';
+import '../../../movies/domain/entities/movie.dart';
 
 class MarathonProvider extends ChangeNotifier {
   static const _marathonsKey = 'marathons';
@@ -32,25 +33,31 @@ class MarathonProvider extends ChangeNotifier {
     required String description,
     required int accentColor,
     required List<String> collectionQueries,
+    List<Movie> manualMovies = const [],
   }) {
     final normalizedQueries = collectionQueries
         .map((query) => query.trim())
         .where((query) => query.isNotEmpty)
         .toSet()
         .toList();
-    if (title.trim().isEmpty || normalizedQueries.isEmpty) return;
+    final normalizedMovies = _uniqueMovies(manualMovies);
+    if (title.trim().isEmpty ||
+        (normalizedQueries.isEmpty && normalizedMovies.isEmpty)) {
+      return;
+    }
 
     _customMarathons.insert(
       0,
       MarathonCollection(
         id: 'custom-${DateTime.now().microsecondsSinceEpoch}',
         title: title.trim(),
-        subtitle: subtitle.trim().isEmpty ? 'Custom marathon' : subtitle.trim(),
+        subtitle: subtitle.trim().isEmpty ? 'Custom LineUp' : subtitle.trim(),
         description: description.trim().isEmpty
-            ? 'A custom release-order marathon from TMDb collections.'
+            ? 'A custom watch order from TMDb collections and selected movies.'
             : description.trim(),
         accentColor: accentColor,
         collectionQueries: normalizedQueries,
+        manualMovies: normalizedMovies,
         isUserCreated: true,
       ),
     );
@@ -65,6 +72,7 @@ class MarathonProvider extends ChangeNotifier {
     required String description,
     required int accentColor,
     required List<String> collectionQueries,
+    List<Movie> manualMovies = const [],
   }) {
     final index = _customMarathons.indexWhere((marathon) => marathon.id == id);
     if (index == -1) return;
@@ -74,17 +82,22 @@ class MarathonProvider extends ChangeNotifier {
         .where((query) => query.isNotEmpty)
         .toSet()
         .toList();
-    if (title.trim().isEmpty || normalizedQueries.isEmpty) return;
+    final normalizedMovies = _uniqueMovies(manualMovies);
+    if (title.trim().isEmpty ||
+        (normalizedQueries.isEmpty && normalizedMovies.isEmpty)) {
+      return;
+    }
 
     _customMarathons[index] = MarathonCollection(
       id: id,
       title: title.trim(),
-      subtitle: subtitle.trim().isEmpty ? 'Custom marathon' : subtitle.trim(),
+      subtitle: subtitle.trim().isEmpty ? 'Custom LineUp' : subtitle.trim(),
       description: description.trim().isEmpty
-          ? 'A custom release-order marathon from TMDb collections.'
+          ? 'A custom watch order from TMDb collections and selected movies.'
           : description.trim(),
       accentColor: accentColor,
       collectionQueries: normalizedQueries,
+      manualMovies: normalizedMovies,
       isUserCreated: true,
     );
     _save();
@@ -104,7 +117,11 @@ class MarathonProvider extends ChangeNotifier {
     return saved
         .whereType<Map>()
         .map(_marathonFromMap)
-        .where((marathon) => marathon.collectionQueries.isNotEmpty)
+        .where(
+          (marathon) =>
+              marathon.collectionQueries.isNotEmpty ||
+              marathon.manualMovies.isNotEmpty,
+        )
         .toList();
   }
 
@@ -120,15 +137,20 @@ class MarathonProvider extends ChangeNotifier {
       id:
           map['id'] as String? ??
           'custom-${DateTime.now().microsecondsSinceEpoch}',
-      title: map['title'] as String? ?? 'Custom Marathon',
-      subtitle: map['subtitle'] as String? ?? 'Custom marathon',
+      title: map['title'] as String? ?? 'Custom LineUp',
+      subtitle: map['subtitle'] as String? ?? 'Custom LineUp',
       description:
           map['description'] as String? ??
-          'A custom release-order marathon from TMDb collections.',
+          'A custom watch order from TMDb collections and selected movies.',
       accentColor: map['accentColor'] as int? ?? 0xFFE53935,
       collectionQueries: ((map['collectionQueries'] as List?) ?? const [])
           .map((value) => value.toString())
           .where((value) => value.trim().isNotEmpty)
+          .toList(),
+      manualMovies: ((map['manualMovies'] as List?) ?? const [])
+          .whereType<Map>()
+          .map(_movieFromMap)
+          .where((movie) => movie.id != 0)
           .toList(),
       isUserCreated: true,
     );
@@ -142,6 +164,51 @@ class MarathonProvider extends ChangeNotifier {
       'description': marathon.description,
       'accentColor': marathon.accentColor,
       'collectionQueries': marathon.collectionQueries,
+      'manualMovies': marathon.manualMovies.map(_movieToMap).toList(),
+    };
+  }
+
+  List<Movie> _uniqueMovies(List<Movie> movies) {
+    final seen = <int>{};
+    final result = <Movie>[];
+    for (final movie in movies) {
+      if (movie.id == 0 || !seen.add(movie.id)) continue;
+      result.add(movie);
+    }
+    return result;
+  }
+
+  Movie _movieFromMap(Map<dynamic, dynamic> map) {
+    return Movie(
+      id: map['id'] as int? ?? 0,
+      title: map['title'] as String? ?? 'Untitled',
+      year: map['year'] as int? ?? DateTime.now().year,
+      runtime: map['runtime'] as String? ?? '-',
+      genres: ((map['genres'] as List?) ?? const []).cast<String>(),
+      language: map['language'] as String? ?? '',
+      rating: (map['rating'] as num?)?.toDouble() ?? 0,
+      overview: map['overview'] as String? ?? '',
+      posterUrl: map['posterUrl'] as String? ?? '',
+      backdropUrl: map['backdropUrl'] as String? ?? '',
+      cast: ((map['cast'] as List?) ?? const []).cast<String>(),
+      isReleased: map['isReleased'] as bool? ?? true,
+    );
+  }
+
+  Map<String, dynamic> _movieToMap(Movie movie) {
+    return {
+      'id': movie.id,
+      'title': movie.title,
+      'year': movie.year,
+      'runtime': movie.runtime,
+      'genres': movie.genres,
+      'language': movie.language,
+      'rating': movie.rating,
+      'overview': movie.overview,
+      'posterUrl': movie.posterUrl,
+      'backdropUrl': movie.backdropUrl,
+      'cast': movie.cast,
+      'isReleased': movie.isReleased,
     };
   }
 }

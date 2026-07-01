@@ -32,10 +32,10 @@ class _MarathonPageState extends State<MarathonPage> {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Marathon'),
+        title: const Text('LineUp'),
         actions: [
           IconButton(
-            tooltip: 'Add marathon',
+            tooltip: 'Add LineUp',
             onPressed: () => context.push('/marathon/new'),
             icon: const Icon(Icons.add),
           ),
@@ -93,7 +93,7 @@ class _MarathonPageState extends State<MarathonPage> {
                           const SizedBox(height: 4),
                           Text(
                             marathon.isUserCreated
-                                ? '${marathon.subtitle} • Custom'
+                                ? '${marathon.subtitle} • Custom LineUp'
                                 : '${marathon.subtitle} • TMDb collections',
                             style: Theme.of(context).textTheme.bodyMedium
                                 ?.copyWith(
@@ -183,7 +183,7 @@ class _MarathonIntro extends StatelessWidget {
             const SizedBox(width: 12),
             Expanded(
               child: Text(
-                'Create your own marathon using TMDb collection names.',
+                'Create your own LineUp using TMDb collections or hand-picked movies.',
                 style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                   color: Theme.of(context).colorScheme.onSurfaceVariant,
                 ),

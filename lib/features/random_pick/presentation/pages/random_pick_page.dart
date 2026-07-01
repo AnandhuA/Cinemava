@@ -204,6 +204,7 @@ class _RandomPickPageState extends State<RandomPickPage>
     _controller.reset();
     _controller.forward().whenComplete(() {
       _stopSpinSound();
+      if (!mounted) return;
       SystemSound.play(SystemSoundType.click);
       setState(() {
         _rotation = endRotation % (math.pi * 2);

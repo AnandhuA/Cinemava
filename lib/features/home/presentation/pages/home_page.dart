@@ -49,9 +49,9 @@ class _HomePageState extends State<HomePage> {
       body: CustomScrollView(
         slivers: [
           SliverAppBar(
-            expandedHeight: 88,
+            expandedHeight: 82,
             pinned: true,
-            title: const Text('Cinemava'),
+            title: _HomeGreeting(name: preferences.displayName),
           ),
           const SliverToBoxAdapter(child: _HomeSearchBar()),
           if (movieProvider.isLoading)
@@ -85,13 +85,48 @@ class _HomePageState extends State<HomePage> {
   }
 }
 
+class _HomeGreeting extends StatelessWidget {
+  const _HomeGreeting({required this.name});
+
+  final String name;
+
+  @override
+  Widget build(BuildContext context) {
+    final trimmedName = name.trim();
+    final greeting = trimmedName.isEmpty ? 'Welcome back' : 'Hi, $trimmedName';
+
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(
+          greeting,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: Theme.of(
+            context,
+          ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w900),
+        ),
+        Text(
+          'What are we watching today?',
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          style: Theme.of(context).textTheme.bodySmall?.copyWith(
+            color: Theme.of(context).colorScheme.onSurfaceVariant,
+          ),
+        ),
+      ],
+    );
+  }
+}
+
 class _HomeSearchBar extends StatelessWidget {
   const _HomeSearchBar();
 
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 8, 16, 10),
+      padding: const EdgeInsets.fromLTRB(16, 0, 16, 0),
       child: InkWell(
         borderRadius: BorderRadius.circular(8),
         onTap: () => context.push('/discover'),
@@ -127,7 +162,7 @@ class _LanguageMovieTabs extends StatelessWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            SectionHeader(title: 'Your Setup', actionLabel: 'Languages'),
+            SectionHeader(title: 'Made For You'),
             TabBar(
               isScrollable: true,
               tabAlignment: TabAlignment.start,

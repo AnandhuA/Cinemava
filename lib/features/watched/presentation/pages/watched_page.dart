@@ -6,6 +6,7 @@ import '../../../../core/widgets/app_empty_state.dart';
 import '../../../../core/widgets/cached_app_image.dart';
 import '../../../anime/domain/entities/anime.dart';
 import '../../../anime/presentation/providers/anime_provider.dart';
+import '../../../anime/presentation/widgets/anime_status_badges.dart';
 import '../../../movies/domain/entities/movie.dart';
 import '../../../movies/presentation/providers/movie_library_provider.dart';
 import '../../../movies/presentation/widgets/movie_list_card.dart';
@@ -183,13 +184,31 @@ class _AnimeWatchedCard extends StatelessWidget {
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              ClipRRect(
-                borderRadius: BorderRadius.circular(8),
-                child: CachedAppImage(
-                  imageUrl: anime.imageUrl,
-                  width: 76,
-                  height: 114,
-                  placeholderIcon: Icons.auto_awesome_outlined,
+              SizedBox(
+                width: 76,
+                height: 114,
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(8),
+                  child: Stack(
+                    fit: StackFit.expand,
+                    children: [
+                      CachedAppImage(
+                        imageUrl: anime.imageUrl,
+                        width: 76,
+                        height: 114,
+                        placeholderIcon: Icons.auto_awesome_outlined,
+                      ),
+                      Positioned(
+                        top: 0,
+                        left: 0,
+                        right: 0,
+                        child: AnimeStatusBadges(
+                          animeId: anime.id,
+                          dense: true,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
               const SizedBox(width: 12),

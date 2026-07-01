@@ -22,7 +22,7 @@ class AppShell extends StatelessWidget {
       NavigationDestination(
         icon: Icon(Icons.local_movies_outlined),
         selectedIcon: Icon(Icons.local_movies),
-        label: 'Marathon',
+        label: 'LineUp',
       ),
       NavigationDestination(
         icon: Icon(Icons.casino_outlined),

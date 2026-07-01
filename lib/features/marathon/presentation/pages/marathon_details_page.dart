@@ -35,6 +35,7 @@ class _MarathonDetailsPageState extends State<MarathonDetailsPage> {
   void _load({bool force = false}) {
     final marathon = _currentMarathon(context, listen: false);
     if (!mounted || marathon == null) return;
+    if (marathon.collectionQueries.isEmpty) return;
     context.read<MovieLibraryProvider>().loadMarathonMovies(
       id: marathon.id,
       collectionQueries: marathon.collectionQueries,
@@ -48,12 +49,13 @@ class _MarathonDetailsPageState extends State<MarathonDetailsPage> {
     if (marathon == null) {
       return Scaffold(
         appBar: AppBar(title: const Text('Release order')),
-        body: const Center(child: Text('Marathon not found.')),
+        body: const Center(child: Text('LineUp not found.')),
       );
     }
 
     final provider = context.watch<MovieLibraryProvider>();
-    final movies = provider.moviesForMarathon(marathon.id);
+    final collectionMovies = provider.moviesForMarathon(marathon.id);
+    final movies = _moviesForMarathon(marathon, collectionMovies);
     final isLoading = provider.isLoadingMarathon(marathon.id);
     final error = provider.marathonError(marathon.id);
     final watchedCount = movies
@@ -66,7 +68,7 @@ class _MarathonDetailsPageState extends State<MarathonDetailsPage> {
         actions: [
           if (marathon.isUserCreated)
             IconButton(
-              tooltip: 'Edit marathon',
+              tooltip: 'Edit LineUp',
               onPressed: () async {
                 await context.push(
                   '/marathon/${marathon.id}/edit',
@@ -79,7 +81,7 @@ class _MarathonDetailsPageState extends State<MarathonDetailsPage> {
             ),
           if (marathon.isUserCreated)
             IconButton(
-              tooltip: 'Delete marathon',
+              tooltip: 'Delete LineUp',
               onPressed: () => _deleteMarathon(context, marathon),
               icon: const Icon(Icons.delete_outline),
             ),
@@ -114,7 +116,8 @@ class _MarathonDetailsPageState extends State<MarathonDetailsPage> {
             _MarathonError(message: error, onReload: () => _load(force: true))
           else if (movies.isEmpty)
             _MarathonError(
-              message: 'TMDb did not return movies for this series yet.',
+              message:
+                  'Add movies one by one or add TMDb collections to this LineUp.',
               onReload: () => _load(force: true),
             )
           else
@@ -144,6 +147,23 @@ class _MarathonDetailsPageState extends State<MarathonDetailsPage> {
     context.push('/movie/${readyMovie.id}');
   }
 
+  List<Movie> _moviesForMarathon(
+    MarathonCollection marathon,
+    List<Movie> collectionMovies,
+  ) {
+    final movies = <Movie>[];
+    final seen = <int>{};
+
+    for (final movie in marathon.manualMovies) {
+      if (seen.add(movie.id)) movies.add(movie);
+    }
+    for (final movie in collectionMovies) {
+      if (seen.add(movie.id)) movies.add(movie);
+    }
+
+    return movies;
+  }
+
   MarathonCollection? _currentMarathon(
     BuildContext context, {
     bool listen = true,
@@ -164,8 +184,8 @@ class _MarathonDetailsPageState extends State<MarathonDetailsPage> {
       context: context,
       builder: (context) {
         return AlertDialog(
-          title: const Text('Delete marathon?'),
-          content: Text('${marathon.title} will be removed from your list.'),
+          title: const Text('Delete LineUp?'),
+          content: Text('${marathon.title} will be removed from your LineUps.'),
           actions: [
             TextButton(
               onPressed: () => Navigator.of(context).pop(false),
@@ -279,10 +299,10 @@ class _MarathonHeader extends StatelessWidget {
                   ),
                   label: Text(
                     isComplete
-                        ? 'Restart marathon'
+                        ? 'Restart LineUp'
                         : watchedCount == 0
-                        ? 'Start marathon'
-                        : 'Continue marathon',
+                        ? 'Start LineUp'
+                        : 'Continue LineUp',
                   ),
                 ),
               ),
@@ -304,6 +324,11 @@ class _MarathonHeader extends StatelessWidget {
                     '${marathon.collectionQueries.length} TMDb series',
                   ),
                 ),
+                if (marathon.manualMovies.isNotEmpty)
+                  Chip(
+                    avatar: const Icon(Icons.format_list_numbered, size: 18),
+                    label: Text('${marathon.manualMovies.length} custom order'),
+                  ),
                 const Chip(
                   avatar: Icon(Icons.event_available_outlined, size: 18),
                   label: Text('Release order'),

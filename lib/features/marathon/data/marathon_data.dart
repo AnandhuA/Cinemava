@@ -1,3 +1,5 @@
+import '../../movies/domain/entities/movie.dart';
+
 class MarathonCollection {
   const MarathonCollection({
     required this.id,
@@ -6,6 +8,7 @@ class MarathonCollection {
     required this.description,
     required this.accentColor,
     required this.collectionQueries,
+    this.manualMovies = const [],
     this.isUserCreated = false,
   });
 
@@ -15,16 +18,17 @@ class MarathonCollection {
   final String description;
   final int accentColor;
   final List<String> collectionQueries;
+  final List<Movie> manualMovies;
   final bool isUserCreated;
 }
 
 const marathonCollections = [
   MarathonCollection(
     id: 'marvel',
-    title: 'Marvel Movie Marathon',
+    title: 'Marvel LineUp',
     subtitle: 'MCU series from TMDb collections',
     description:
-        'Builds a release-order marathon from Marvel franchise collections on TMDb.',
+        'Builds a release-order LineUp from Marvel franchise collections on TMDb.',
     accentColor: 0xFFE53935,
     collectionQueries: [
       'Iron Man Collection',

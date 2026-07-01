@@ -9,6 +9,7 @@ import '../../../random_pick/presentation/providers/spin_wheel_provider.dart';
 import '../../domain/entities/anime.dart';
 import '../../domain/entities/anime_details.dart';
 import '../providers/anime_provider.dart';
+import '../widgets/anime_status_badges.dart';
 
 class AnimeDetailsPage extends StatefulWidget {
   const AnimeDetailsPage({super.key, required this.anime});
@@ -429,13 +430,31 @@ class _RecommendationsSection extends StatelessWidget {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        ClipRRect(
-                          borderRadius: BorderRadius.circular(8),
-                          child: CachedAppImage(
-                            imageUrl: anime.imageUrl,
-                            width: 128,
-                            height: 178,
-                            placeholderIcon: Icons.auto_awesome_outlined,
+                        SizedBox(
+                          width: 128,
+                          height: 178,
+                          child: ClipRRect(
+                            borderRadius: BorderRadius.circular(8),
+                            child: Stack(
+                              fit: StackFit.expand,
+                              children: [
+                                CachedAppImage(
+                                  imageUrl: anime.imageUrl,
+                                  width: 128,
+                                  height: 178,
+                                  placeholderIcon: Icons.auto_awesome_outlined,
+                                ),
+                                Positioned(
+                                  top: 0,
+                                  left: 0,
+                                  right: 0,
+                                  child: AnimeStatusBadges(
+                                    animeId: anime.id,
+                                    dense: true,
+                                  ),
+                                ),
+                              ],
+                            ),
                           ),
                         ),
                         const SizedBox(height: 8),
